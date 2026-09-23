@@ -6,7 +6,9 @@ Use a **new, dedicated Supabase project**. The migration changes defaults for fu
 
 With Docker running, use `npm run db:start`, then `npm run db:reset`. Reset is destructive to the **local** database. Run `npx supabase status` to obtain the local URL and publishable key; keep them in `.env.local`. This scaffold intentionally accepts modern `sb_publishable_` keys only.
 
-For a hosted project:
+Phase 1.2 uses Supabase Auth only. Do not apply a database migration to enable authentication. Configure the production project using the [root README](../README.md); no application tables or buckets are needed. The local Auth configuration enables email signup and mandatory confirmation, supplies the confirmation template, and leaves MFA off.
+
+For future database work on a hosted project (not required in Phase 1.2):
 
 ```sh
 npx supabase login

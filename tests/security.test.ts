@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parsePublicEnv } from "../src/lib/env/schema";
+import { parsePublicEnv, parseDeploymentEnv } from "../src/lib/env/schema";
 import { contentSecurityPolicy } from "../src/lib/security/csp";
 import { AppError, toPublicError } from "../src/lib/errors";
 
@@ -40,4 +40,20 @@ test("unexpected errors do not leak internal details", () => {
   assert.equal(error.status, 500);
   assert.doesNotMatch(error.message, /password|secret/);
   assert.equal(toPublicError(new AppError("UNAUTHENTICATED", "Authentication is required.", 401)).status, 401);
+});
+
+test("shell builds allow an absent backend but reject partial backend configuration", () => {
+  assert.equal(parseDeploymentEnv({}, true).hasBackend, false);
+  assert.throws(() => parseDeploymentEnv({ VERCEL: "1" }, true));
+  assert.throws(() => parseDeploymentEnv({ NEXT_PUBLIC_SUPABASE_URL: validEnv.NEXT_PUBLIC_SUPABASE_URL }, true));
+  assert.equal(parseDeploymentEnv({ ...validEnv, VERCEL: "1" }, true).hasBackend, true);
+  assert.throws(() => parseDeploymentEnv({ VERCEL: "1", VERCEL_ENV: "production", NEXT_PUBLIC_SITE_URL: validEnv.NEXT_PUBLIC_SITE_URL }, true));
+});
+
+test("canonical and backend URLs must be origins, not credential-bearing URLs or paths", () => {
+  for (const value of ["https://user:password@example.com", "https://example.com/path", "https://example.com?token=x", "https://example.com/#fragment"]) {
+    assert.throws(() => parseDeploymentEnv({ NEXT_PUBLIC_SITE_URL: value }, true));
+  }
+  assert.equal(parseDeploymentEnv({ NEXT_PUBLIC_SITE_URL: "https://certs.example.com/" }, true).siteUrl, "https://certs.example.com");
+  assert.throws(() => parseDeploymentEnv({ NEXT_PUBLIC_SITE_URL: "http://example.com" }, true));
 });

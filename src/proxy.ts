@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 import { contentSecurityPolicy } from "@/lib/security/csp";
 
@@ -8,13 +8,21 @@ export async function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set("x-nonce", nonce);
   headers.set("Content-Security-Policy", csp);
-  const response = await updateSession(request, headers);
+  // Public shell pages have no user data and must not depend on Auth uptime.
+  // Future protected routes must explicitly opt in here AND enforce guards/RLS.
+  const path = request.nextUrl.pathname;
+  const response = path.startsWith("/auth/") || path === "/dashboard" || path.startsWith("/dashboard/") || path === "/login" || path === "/register"
+    ? await updateSession(request, headers)
+    : NextResponse.next({ request: { headers } });
   response.headers.set("Content-Security-Policy", csp);
   // Never share session-bearing HTML or per-request nonces through a CDN.
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  if (process.env.VERCEL_ENV !== "production" || ["/login", "/register", "/verify", "/dashboard"].includes(path) || path.startsWith("/dashboard/") || path.startsWith("/auth/")) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|_vercel/speed-insights/|badges/|favicon.ico|icon.svg|api/health).*)"],
+  matcher: ["/((?!_next/static/|_next/image|_vercel/speed-insights/|badges/|favicon\\.ico$|icon\\.svg$|apple-icon\\.png$|robots\\.txt$|sitemap\\.xml$|api/health$).*)"],
 };

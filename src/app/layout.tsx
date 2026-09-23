@@ -3,15 +3,19 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { site } from "@/config/site";
+import { getSiteUrl, canIndexSite } from "@/lib/metadata";
 import "./globals.css";
 
 // Per-request CSP nonces require dynamic rendering (no static HTML cache).
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
+  applicationName: site.name,
   title: { default: site.name, template: `%s | ${site.name}` },
   description: site.description,
-  robots: { index: false, follow: false },
+  robots: { index: canIndexSite(), follow: canIndexSite() },
+  icons: { icon: [{ url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" }, { url: "/icon.svg", type: "image/svg+xml" }], apple: "/apple-icon.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

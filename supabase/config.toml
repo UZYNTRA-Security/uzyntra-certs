@@ -38,14 +38,26 @@ additional_redirect_urls = ["http://localhost:3000/auth/callback"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
-enable_signup = false
+enable_signup = true
 enable_anonymous_sign_ins = false
 minimum_password_length = 12
 
 [auth.email]
-enable_signup = false
+enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your UZYNTRA Certs account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
 
 [analytics]
 enabled = false

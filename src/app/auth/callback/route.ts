@@ -1,19 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPublicEnv } from "@/lib/env/public";
+import { getSiteUrl } from "@/lib/metadata";
+import { completeCallback } from "@/lib/auth/service";
 
 export async function GET(request: NextRequest) {
-  // Trusted configured origin and a fixed destination prevent open redirects.
-  const origin = getPublicEnv().NEXT_PUBLIC_SITE_URL;
-  const code = request.nextUrl.searchParams.get("code");
-  if (code && code.length <= 4096) {
-    try {
-      const supabase = await createClient();
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (!error) return NextResponse.redirect(new URL("/", origin), { headers: { "Cache-Control": "no-store" } });
-    } catch {
-      // No provider details, authorization codes, or tokens in the response.
-    }
+  let destination: "/dashboard" | "/auth/error" = "/auth/error";
+  try {
+    const supabase = await createClient("write");
+    destination = await completeCallback(supabase.auth, request.nextUrl.searchParams);
+  } catch {
+    // Never expose authorization codes, tokens, or provider errors.
   }
-  return NextResponse.redirect(new URL("/auth/error", origin), { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.redirect(new URL(destination, getSiteUrl()), {
+    status: 303,
+    headers: {
+      "Cache-Control": "private, no-store, max-age=0",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Referrer-Policy": "no-referrer",
+      "X-Robots-Tag": "noindex, nofollow",
+    },
+  });
 }

@@ -13,6 +13,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "check:env": "tsx scripts/check-env.ts",
+    "check:supabase": "tsx scripts/check-supabase.ts",
+    "test:auth-routes": "node scripts/smoke-auth.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",

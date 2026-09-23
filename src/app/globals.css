@@ -56,5 +56,6 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground antialiased; }
+  a:focus-visible, button:focus-visible { @apply outline-2 outline-offset-4 outline-ring; }
   ::selection { @apply bg-primary/25 text-foreground; }
 }
