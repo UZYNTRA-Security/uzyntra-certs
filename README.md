@@ -108,6 +108,16 @@ CI checks the foundation without live Supabase credentials. Tests cover public-k
 
 Deployment, DNS changes, and a hosted Supabase project are not provisioned by this scaffold. The UI is a development holding page, not a launched verification service.
 
+## Performance monitoring
+
+Vercel Speed Insights is mounted once in the root layout using `@vercel/speed-insights/next`. Enable Speed Insights in the Vercel project dashboard, deploy the latest commit, then visit the deployed site to start collecting real-user performance metrics. Local development does not populate the production dashboard. If no events appear, check browser content blockers and confirm that the deployment includes this integration.
+
+The current CSP permits the dynamically injected script through `strict-dynamic` and same-origin metric requests through `connect-src 'self'`; no additional script hosts or weaker production script rules are needed. The standard Vercel Speed Insights endpoints bypass the session proxy.
+
+## Badge assets
+
+Shared badge artwork lives in `public/badges/`. The supplied `offensive-ai.png` is available at `/badges/offensive-ai.png` for future verification profiles. More badges will be added to this folder over time; inspect its current contents when working on badges or verification profiles. These public assets bypass session refresh and can be referenced by image components when profile features are implemented. No verification profile or badge-assignment logic is implemented yet.
+
 ## References
 
 - [Next.js installation](https://nextjs.org/docs/app/getting-started/installation)
@@ -115,5 +125,6 @@ Deployment, DNS changes, and a hosted Supabase project are not provisioned by th
 - [shadcn/ui manual setup](https://ui.shadcn.com/docs/installation/manual)
 - [Vercel custom domains](https://vercel.com/docs/domains/set-up-custom-domain)
 - [Vercel guidance for Cloudflare](https://vercel.com/kb/guide/cloudflare-with-vercel)
+- [Vercel Speed Insights setup](https://vercel.com/docs/speed-insights/quickstart)
 
 Copyright UZYNTRA Security. No open-source license is granted by this repository.
