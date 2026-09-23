@@ -6,6 +6,7 @@ import { loginAction, registerAction } from "@/lib/auth/actions";
 import { initialAuthState, loginSchema, registerSchema, type AuthFormState } from "@/lib/auth/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmationResend } from "@/components/auth/confirmation-resend";
 
 export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enabled: boolean }) {
   const registration = mode === "register";
@@ -23,9 +24,10 @@ export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enable
     } else setClientErrors(undefined);
   }
 
-  if (state.status === "success") return <div role="status" className="space-y-5">
+  if (state.status === "success") return <div className="space-y-5">
     <h2 className="text-xl font-semibold">Check your email</h2>
-    <p className="text-sm leading-relaxed text-muted-foreground">{state.message}</p>
+    <p role="status" className="text-sm leading-relaxed text-muted-foreground">{state.message}</p>
+    <ConfirmationResend email={state.email} initialWait={state.retryAfterSeconds} enabled={enabled} />
     <Button asChild variant="outline"><Link href="/login">Return to sign in</Link></Button>
   </div>;
 
@@ -35,7 +37,7 @@ export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enable
     ...(registration ? [{ name: "confirmPassword" as const, label: "Confirm password", type: "password", autoComplete: "new-password", placeholder: "Re-enter your password", maxLength: 128 }] : []),
   ];
 
-  return <form action={action} onSubmit={validate} noValidate className="space-y-5" aria-busy={pending}>
+  return <div className="space-y-5"><form action={action} onSubmit={validate} noValidate className="space-y-5" aria-busy={pending}>
     {!enabled && <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">Account access is temporarily unavailable. Please try again later.</p>}
     {state.message && <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm">{state.message}</p>}
     <fieldset disabled={pending || !enabled} className="space-y-5">
@@ -52,5 +54,10 @@ export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enable
       <Button type="submit" className="w-full" disabled={pending || !enabled}>{pending ? (registration ? "Creating account…" : "Signing in…") : (registration ? "Create account" : "Sign in")}</Button>
     </fieldset>
     <p className="text-sm text-muted-foreground">{registration ? "Already have an account? " : "New to UZYNTRA Certs? "}<Link className="text-primary underline underline-offset-4" href={registration ? "/login" : "/register"}>{registration ? "Sign in" : "Create an account"}</Link></p>
-  </form>;
+  </form>
+    {registration && state.code === "EMAIL_ALREADY_REGISTERED" && <div className="space-y-4 border-t pt-5">
+      <Button asChild variant="outline"><Link href="/login">Sign in to your account</Link></Button>
+      <details><summary className="cursor-pointer text-sm text-primary">Email not verified? Resend confirmation</summary><div className="mt-4"><ConfirmationResend email={state.email} enabled={enabled} /></div></details>
+    </div>}
+  </div>;
 }

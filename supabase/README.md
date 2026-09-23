@@ -6,9 +6,9 @@ Use a **new, dedicated Supabase project**. The migration changes defaults for fu
 
 With Docker running, use `npm run db:start`, then `npm run db:reset`. Reset is destructive to the **local** database. Run `npx supabase status` to obtain the local URL and publishable key; keep them in `.env.local`. This scaffold intentionally accepts modern `sb_publishable_` keys only.
 
-Phase 1.2 uses Supabase Auth only. Do not apply a database migration to enable authentication. Configure the production project using the [root README](../README.md); no application tables or buckets are needed. The local Auth configuration enables email signup and mandatory confirmation, supplies the confirmation template, and leaves MFA off.
+Authentication uses Supabase Auth. Registration additionally requires `migrations/20260924000000_registration_email_lookup.sql`, which reads existing `auth.users` through a boolean-only function. It creates no application tables. Both confirmed and unconfirmed users count as registered. Anonymous and authenticated roles cannot execute this function; only the server service role can. Configure the production project using the [root README](../README.md); no application tables or buckets are needed. The local Auth configuration enables email signup and mandatory confirmation, supplies the confirmation template, and leaves MFA off.
 
-For future database work on a hosted project (not required in Phase 1.2):
+To apply the reviewed migrations to the intended hosted project:
 
 ```sh
 npx supabase login
@@ -28,4 +28,6 @@ New feature migrations must:
 5. Grant function execution selectively. Prefer invoker rights; security-definer functions need a fixed `search_path` and explicit authorization.
 6. Update database types with `npm run db:types` (local) or `npx supabase gen types typescript --linked > src/types/database.ts` (hosted).
 
-Storage is accessible through the same user-scoped Supabase clients (`client.storage`). Add private buckets, file size/MIME restrictions, and `storage.objects` policies only when a feature needs them. Private documents must never be placed in public buckets. No service-role client exists in this foundation.
+Storage is accessible through the same user-scoped Supabase clients (`client.storage`). Add private buckets, file size/MIME restrictions, and `storage.objects` policies only when a feature needs them. Private documents must never be placed in public buckets. The server-only admin client is restricted in application usage to the registration email lookup; browser and session clients continue to use the publishable key. Missing keys or lookup failures prevent signup.
+
+Alternatively, open the registration lookup migration file, copy its entire SQL into the intended project?s Supabase SQL Editor, and run it. Do not paste API keys into SQL. If applying manually, reconcile migration history before a later CLI push. Set `SUPABASE_SECRET_KEY` from Settings ? API Keys in `.env.local` and Vercel Production, then restart local development or redeploy Vercel. Never commit this value. Local tests validate SQL and permissions but do not apply it to your hosted project.

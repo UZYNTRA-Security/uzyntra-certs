@@ -21,7 +21,7 @@ UZYNTRA Security's digital credential platform is deployed on Vercel. This phase
 | `/robots.txt` | Environment-aware crawler policy | Public metadata |
 | `/sitemap.xml` | Canonical home/about URLs only in Vercel Production | Public metadata |
 
-No credential tables, certificate generation, badge features, admin dashboard, or application schema changes are included. `/dashboard` is only an authenticated account shell. Supabase manages its built-in Auth users; no application profile table or trigger is needed.
+No credential tables, certificate generation, badge features, admin dashboard, are included. A service-only database function checks existing Auth emails before registration. `/dashboard` is only an authenticated account shell. Supabase manages its built-in Auth users; no application profile table or trigger is needed.
 
 ## Stack and architecture
 
@@ -45,7 +45,7 @@ src/
     security/          Content Security Policy
     supabase/          Existing clients and session refresh
     metadata.ts        Canonical URL, page metadata and indexing policy
-  types/               Database type placeholder
+  types/               Database types for the registration lookup
   proxy.ts             Per-request CSP; scoped auth session refresh
 public/
   badges/              User-supplied artwork for future verification profiles
@@ -90,6 +90,7 @@ Next.js loads `.env*` files before evaluating `next.config.ts`. Build configurat
 | `NEXT_PUBLIC_SITE_URL` | Required on Vercel | Production: `https://certs.uzyntra.com`; trusted canonical origin |
 | `NEXT_PUBLIC_SUPABASE_URL` | Required for Auth and Vercel Production | Dedicated project's API URL from Supabase Connect |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Required for Auth and Vercel Production | Browser-safe `sb_publishable_...` key; never a service-role/secret key |
+| `SUPABASE_SECRET_KEY` | Required for registration | Server-only `sb_secret_...` key for the email lookup; never expose to browsers |
 | `VERCEL`, `VERCEL_ENV` | Managed by Vercel | Deployment validation and indexing policy; do not manually override |
 
 Origins must not contain credentials, paths, query strings, or fragments. Production URLs must use HTTPS. Vercel Production builds require both backend values. Local/CI shell builds may omit both, but partial or invalid configuration always fails validation. A local/CI build with no site setting uses the canonical domain as a non-secret fallback; Vercel deployments must configure it explicitly.
@@ -106,7 +107,7 @@ Public configuration is embedded at build time. Redeploy after changing it. Keep
 ## Supabase production setup
 
 1. Select or create the dedicated **UZYNTRA Certs** Supabase project. Record its project reference. Do not reuse another application's project without reviewing its existing Auth configuration.
-2. In Supabase **Connect / API Keys**, obtain the project URL and modern publishable key. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_SITE_URL=https://certs.uzyntra.com` in Vercel **Production**. No service-role key or database password belongs in the application.
+2. In Supabase **Connect / API Keys**, obtain the project URL and modern publishable key. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_SITE_URL=https://certs.uzyntra.com` in Vercel **Production**. In Settings ? API Keys, copy or create a modern secret key and set `SUPABASE_SECRET_KEY` in the server environment. Never prefix this variable with `NEXT_PUBLIC_`. Apply the registration lookup migration as described in [supabase/README.md](supabase/README.md) before accepting registrations.
 3. In **Authentication → Sign In / Providers**, enable **Email/password**, allow new user signups, and enable **Confirm email**. Set the minimum password length to **12**. Keep MFA/TOTP/phone enrollment and verification disabled for this phase. Do not enable anonymous or phone signup.
 4. Set Auth **Site URL** to `https://certs.uzyntra.com` and allow exactly `https://certs.uzyntra.com/auth/callback` under Redirect URLs. Use a separate staging project for localhost and preview callbacks. Avoid production wildcard redirect entries.
 5. Set the **Confirm signup** email template to the contents of `supabase/templates/confirmation.html`. Its link is `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (HTML escapes `&` as `&amp;`). Registration supplies the allowlisted `/auth/callback` redirect. The hash flow supports confirming in a different browser; the default PKCE confirmation flow also works in the browser used to register.
@@ -114,15 +115,19 @@ Public configuration is embedded at build time. Redeploy after changing it. Keep
 7. With the public settings in a local ignored `.env.local`, run `npm run check:env -- --production` and `npm run check:supabase -- --production`. The second command makes a read-only request to Auth settings and verifies email/password, signup, and mandatory confirmation without printing keys.
 8. Deploy and test with an approved test mailbox: register, confirm the email, reach `/dashboard`, sign out, verify that `/dashboard` redirects to `/login`, and sign in again. Test expired/reused links. Verify the actual email sender and both same-browser PKCE and cross-browser hash confirmation as appropriate.
 
-`supabase/config.toml` applies to the local stack only; editing it or deploying Next.js does **not** configure hosted Supabase Auth. Do not run `supabase db push` for this phase. The settings check does not validate SMTP delivery, redirect allowlists, templates, or MFA settings; inspect those in the dashboard.
+`supabase/config.toml` applies to the local stack only; editing it or deploying Next.js does **not** configure hosted Supabase Auth. Registration now requires the service-only email lookup migration; review the target and pending migrations before applying it. The settings check does not validate SMTP delivery, redirect allowlists, templates, or MFA settings; inspect those in the dashboard.
 
 ## Local authentication workflow
 
 Use a separate hosted development project configured like production, or run Docker and `npm run db:start`. Local settings enable signups, require confirmation, and disable MFA. Do not reset an existing database just to enable Auth. Copy the local URL and publishable key from `npx supabase status` into `.env.local`, and use `NEXT_PUBLIC_SITE_URL=http://localhost:3000`. The local callback allowlist and email template are already configured. View confirmation messages through the local mail inbox at the address reported by the CLI.
 
-Run `npm run dev`, register, open the email link, check the protected account page, then sign out. Secure cookies are enabled in production; use the dev server for HTTP localhost Auth testing. Production builds require HTTPS-configured origins. CI uses a controlled Auth transport and needs no live account or privileged key.
+Set the server-only secret key from the development project, apply the lookup migration, then run `npm run dev`, register, open the email link, check the protected account page, then sign out. Secure cookies are enabled in production; use the dev server for HTTP localhost Auth testing. Production builds require HTTPS-configured origins. CI uses a controlled Auth transport and needs no live account or privileged key.
 
 ## Authentication and security behavior
+
+- Confirmation email resending is available after registration and under “Need another confirmation email?” on `/login`. The button shows a 90-second countdown after signup and each resend attempt. Its deadline is stored in sessionStorage (without email/password data) so navigation or refresh in the same tab retains the wait; an in-memory timer works if storage is unavailable.
+- Resending uses Supabase `auth.resend({ type: "signup" })` with the trusted callback URL. Messages explain that an already registered, verified email should sign in instead. Responses do not expose account existence or promise delivery for ineligible addresses. Provider rate-limit errors remain visible as retry guidance.
+- The timer is a UX cooldown, not an abuse-prevention boundary. Local Supabase email `max_frequency` is set to `90s`; configure the equivalent minimum email-send interval in hosted Supabase Auth to 90 seconds. Provider rate limits remain authoritative and can require a longer wait. No database-backed rate limiter is introduced.
 
 - Forms validate email, password bounds, and matching registration passwords in the browser and again on the server. Passwords are never returned in action state or logged. Registration requires 12–128 characters; login accepts existing password lengths up to 128.
 - Server Actions perform credential submission and logout, retaining Next.js same-origin/CSRF protections. No GET logout endpoint exists. Success invalidates the client router cache and redirects outside error handlers.
@@ -130,11 +135,11 @@ Run `npm run dev`, register, open the email link, check the protected account pa
 - Browser and server SDKs use matching `SameSite=Lax`, root-path, production-Secure cookies. Session cookies are intentionally readable by the browser SDK; the nonce-based CSP remains enabled. Tokens are never exposed in action results, logs, or rendered account details.
 - `/dashboard` uses `getUser()` against Auth and requires a verified email; a missing/invalid session redirects to `/login`. Identity alone grants no administrative privilege. An Auth outage shows an error instead of granting access.
 - The callback accepts exactly one PKCE code or an email/signup token hash. Expired, duplicated, unsupported, or ambiguous inputs fail closed. User-supplied `next` values are ignored; redirects always use the configured origin and fixed paths. Callback responses are no-store and no-referrer.
-- Unverified users cannot enter the account shell. Registration receiving an immediate session is treated as a confirmation-setting error and signs out locally. Duplicate signup responses use generic messaging.
+- Unverified users cannot enter the account shell. Registration receiving an immediate session is treated as a confirmation-setting error and signs out locally. Registration checks the database first and shows ?This email is already registered? for existing confirmed or unconfirmed accounts, without invoking signup. Lookup failures stop registration without sending email. Existing unconfirmed users can explicitly resend confirmation. Supabase still handles concurrent signup races.
 - Logout signs out the current session and clears cookies. It does not sign out other devices. As with Supabase JWTs generally, previously issued access tokens can remain valid until expiry; future sensitive data operations need RLS and appropriate session policies.
 - Login, registration, and account routes are noindex. The sitemap still contains only home/about. No credential or admin access is implied by a successful login.
 
-Tests cover missing sessions, successful login and cookie reuse, browser/server cookie compatibility, logout, invalid passwords, unconfirmed emails, signup validation, PKCE/hash callbacks, malicious redirect inputs, and proxy refresh cookie propagation. The tests run the real Supabase SDK against a test-only in-memory Auth transport; they do not claim to verify a live production project.
+Tests cover missing sessions, successful login and cookie reuse, browser/server cookie compatibility, logout, invalid passwords, unconfirmed emails, signup validation, PKCE/hash callbacks, malicious redirect inputs, and proxy refresh cookie propagation. Database tests apply the actual lookup migration to PGlite PostgreSQL and verify role permissions, existing/new emails, and no signup on lookup failure. The Auth tests run the real Supabase SDK against a test-only in-memory Auth transport; they do not claim to verify a live production project.
 
 For actual HTTP behavior after a build, start `npm start -- --hostname 127.0.0.1 --port 3100`, then run `npm run test:auth-routes` in another terminal. It checks the anonymous 307 redirect, form routes, callback error handling, and security headers without creating users. `AUTH_SMOKE_BASE_URL` can target a specific authorized deployment for the same anonymous checks.
 
@@ -157,8 +162,8 @@ The Vercel preview toolbar may require additional CSP hosts if you choose to ena
 
 1. Connect the public GitHub repository to the existing Vercel project. Use `main` as the production branch and enable preview deployments for pull requests.
 2. Select the **Next.js** preset, root directory **.**, Node.js **24.x**, install command **npm ci**, build command **npm run build**, and the default output directory. Environment validation runs inside the build configuration; no extra platform setting is required to activate it.
-3. In Project Settings → Environment Variables, set the canonical site URL and both Supabase production variables. Configure Preview separately. Complete the hosted Auth setup above before release; missing production backend values intentionally fail the build.
-4. Deploy the reviewed commit. Confirm that the deployment succeeds and that Vercel assigns the intended production domain. No deployment command should apply database migrations in this phase.
+3. In Project Settings → Environment Variables, set the canonical site URL, both public Supabase variables, and server-only `SUPABASE_SECRET_KEY`. Configure Preview separately. Complete the hosted Auth setup above before release; missing production backend values intentionally fail the build.
+4. Deploy the reviewed commit. Confirm that the deployment succeeds and that Vercel assigns the intended production domain. Apply the reviewed database migration separately before enabling registration; Vercel builds do not apply it.
 5. In Domains, configure `certs.uzyntra.com`. In Cloudflare, use the exact CNAME and any ownership TXT record shown by Vercel, with **DNS only** initially. Preserve unrelated DNS records and confirm TLS issuance.
 6. Visit the public pages, run the registration/confirmation/login/logout flow, and inspect headers, canonical URLs, icons, robots and sitemap. Check production and a protected staging preview.
 7. Confirm Speed Insights is enabled in Vercel, visit the deployed site, and check incoming metrics. Existing Git integration may deploy automatically after a push; local builds alone do not update production.
@@ -169,6 +174,7 @@ The Vercel preview toolbar may require additional CSP hosts if you choose to ena
 - [ ] Correct project, root directory, branch, Node.js version, and locked install settings.
 - [ ] Required site origin set to the canonical HTTPS domain for Production.
 - [ ] Supabase production URL and publishable key validated; no privileged browser keys.
+- [ ] Server-only secret configured and registration lookup migration applied; verify an existing email is rejected without sending a signup email.
 - [ ] Email/password and confirmation enabled; signups allowed; MFA off; SMTP and callback allowlist verified.
 - [ ] `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` pass.
 - [ ] Preview reviewed on mobile and desktop; keyboard navigation and focus visible.

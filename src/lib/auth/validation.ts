@@ -4,6 +4,8 @@ const email = z.string().trim().email("Enter a valid email address.").max(254, "
 const password = z.string().min(1, "Enter your password.").max(128, "Use at most 128 characters.");
 
 export const loginSchema = z.object({ email, password });
+export const resendSchema = z.object({ email });
+export const RESEND_COOLDOWN_SECONDS = 90;
 export const registerSchema = z.object({
   email,
   password: password.min(12, "Use at least 12 characters."),
@@ -14,7 +16,10 @@ export const registerSchema = z.object({
 
 export type AuthFormState = {
   status: "idle" | "error" | "success";
+  code?: "EMAIL_ALREADY_REGISTERED";
   message?: string;
+  email?: string;
+  retryAfterSeconds?: number;
   errors?: Partial<Record<"email" | "password" | "confirmPassword", string[]>>;
 };
 
