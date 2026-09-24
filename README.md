@@ -49,7 +49,8 @@ tests/                     SDK, PostgreSQL, security and browser tests
 | `/v/[credential_id]` | Approved public details; explicit missing/unavailable/rate-limit states |
 | `/login`, `/register` | Authentication and state-aware registration |
 | `/forgot-password` | Generic password reset request |
-| `/auth/reset-password` | Recovery-token callback/form and password update |
+| `/reset-password` | Recovery code/token form and password update |
+| `/auth/reset-password` | Compatibility route for older email links |
 | `/auth/callback` | Signup confirmation via PKCE or email token hash |
 | `/dashboard` | Protected account shell |
 | `/dashboard/security` | Protected security settings structure |
@@ -72,7 +73,7 @@ PowerShell: `Copy-Item .env.example .env.local`. Do not overwrite an existing co
 | `NEXT_PUBLIC_SITE_URL` | Trusted callback/canonical origin: production `https://certs.uzyntra.com` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe `sb_publishable_...` key |
-| `SUPABASE_SECRET_KEY` | Server-only `sb_secret_...` key for registration state and public verification RPCs |
+| `SUPABASE_SECRET_KEY` | Server-only `sb_secret_...` key for registration state/public verification RPCs and signed recovery grants |
 | `VERCEL`, `VERCEL_ENV` | Managed by Vercel; do not override |
 
 Obtain keys from Supabase **Settings > API Keys**. Never use a `NEXT_PUBLIC_` prefix for the secret. `.env.local` is ignored by Git. The admin client is separate from session clients and never receives user cookies. Missing secrets or RPCs fail closed. Builds validate public deployment configuration; passing a build does not establish database readiness.
@@ -83,11 +84,11 @@ Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with
 
 1. Review and apply migrations in order to the intended project. See [database documentation](supabase/README.md). Previously applied migrations must not be blindly rerun. New migrations add registration states and the credential schema. Vercel never applies them automatically.
 2. Set the four application environment variables above locally and in Vercel Production. Secret keys belong only in server environments.
-3. Enable Email/password, signups and **Confirm email**. Require at least 12-character passwords. Keep MFA and anonymous signups disabled.
+3. Enable Email/password, signups and **Confirm email**. Set the Supabase minimum password length to 8 for password recovery. Registration retains its existing 12-character application minimum. Keep MFA and anonymous signups disabled.
 4. Set Auth Site URL to `https://certs.uzyntra.com`. Allow exactly:
    - `https://certs.uzyntra.com/auth/callback`
-   - `https://certs.uzyntra.com/auth/reset-password`
-5. Copy `supabase/templates/confirmation.html` into the **Confirm signup** email template and `supabase/templates/recovery.html` into **Reset password**. Recovery uses `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`; the checked-in HTML escapes `&`. The reset page intentionally accepts this token-hash flow, not the default fragment/PKCE recovery URL. Apply this template before enabling recovery.
+   - `https://certs.uzyntra.com/reset-password`
+5. Copy `supabase/templates/confirmation.html` into the **Confirm signup** email template and `supabase/templates/recovery.html` into **Reset password**. Recovery uses `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`; the checked-in HTML escapes `&`. The reset page supports this cross-browser token-hash flow and standard PKCE `?code=...` links (including `sb_flow_id` when supplied). PKCE links need the requesting browser's verifier cookie. Implicit access-token URL fragments are not used by the SSR setup. Keep the older `/auth/reset-password` allowlist entry for links already sent.
 6. Configure a production SMTP sender, SPF/DKIM and provider delivery settings. Set Auth's minimum email-send interval to **90 seconds** and review the project/IP email limits. Set email OTP expiration to **3600 seconds or less**. Recovery-token expiry/reuse is enforced by Supabase.
 7. Configure daily verification-log cleanup using Supabase Cron as documented below. Add edge rate limits to registration, recovery and verification entry points before public launch.
 8. Run `npm run check:env -- --production` and `npm run check:supabase -- --production`. The readiness check reads Auth settings and checks that registration/verification RPCs exist. It creates no accounts, emails, credentials or audit records. It does not prove complete migration history, SMTP delivery, templates, MFA or redirect allowlists.
@@ -97,9 +98,11 @@ Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with
 
 ## Recovery and session security
 
-The reset page validates URL shape, displays a new-password form and removes the token from browser history after hydration. Tokens are consumed only on deliberate form POSTs, so opening or scanning an email link does not consume it. The action validates password length, variety and confirmation before calling `verifyOtp` with **type recovery**, then `updateUser`. An ordinary authenticated session cannot substitute for a recovery token. Invalid/expired/reused links show recovery guidance. An update failure after consuming a token requires a new link.
+Both `/auth/reset-password` and `/reset-password` read recovery proof and run the same callback on hydration. A Server Action exchanges a PKCE code with `exchangeCodeForSession` (including `sb_flow_id` when present), or verifies a token hash with `verifyOtp` and type recovery. It requires a session and verifies the PKCE recovery flow marker. Missing, expired or invalid codes show recovery guidance before any password form appears. Strict Mode effect replay reuses one exchange promise so it does not consume the code twice.
 
-Successful recovery requests global sign-out, clears the local session and shows a login action. Already issued access JWTs may remain usable until their expiry; global sign-out revokes refresh sessions. A session-revocation failure is reported without claiming the password change failed. Passwords and tokens are never returned in action state or logs. Recovery emails use generic eligibility messaging; only registration discloses the requested three account states, with no account IDs or metadata.
+The successful exchange stores normal Supabase session cookies plus a signed HTTP-only recovery grant lasting ten minutes, tied to the verified user and exact access token. The update action verifies `getUser()` and the grant before `updateUser()`. A normal login session or a client-supplied flag cannot authorize recovery. A changed/refreshed session requires a new link. Passwords must match and contain 8-128 characters; validation and provider/network errors are reported without returning tokens or passwords. Tokens are removed from the visible URL after hydration. Refreshing the clean URL resumes only a valid signed recovery session. Otherwise, request a new link; the original code is single-use.
+
+Successful recovery requests global sign-out, clears the local session and shows "Password updated successfully. You can now sign in." before automatically redirecting to `/login` after 2.5 seconds. Already issued access JWTs may remain usable until their expiry; global sign-out revokes refresh sessions. A session-revocation failure is reported without claiming the password change failed. Passwords and tokens are never returned in action state or logs. Recovery emails use generic eligibility messaging; only registration discloses the requested three account states, with no account IDs or metadata.
 
 Cookie clients share SameSite=Lax, root path and production Secure settings. Server Components read cookies; actions and handlers explicitly use writable clients. Server Actions retain same-origin/CSRF protections. Proxy checks verified users before protected page streaming, and each protected page also checks identity. CSP, HSTS, no-sniff, anti-framing, no-referrer on Auth routes, noindex and private/no-store responses are retained. Speed Insights runs only on `/`, `/about` and `/verify`, excluding Auth/token URLs and private pages.
 
@@ -164,3 +167,12 @@ Next: Phase 4 candidate credential dashboard, then Phase 5 admin issuing, follow
 - [Next.js CSP](https://nextjs.org/docs/app/guides/content-security-policy)
 
 Copyright UZYNTRA Security. No open-source license is granted by this repository.
+
+## Testing password recovery locally
+
+1. Add `http://localhost:3000/reset-password` and `https://certs.uzyntra.com/reset-password` in Supabase Auth > URL Configuration > Redirect URLs. For a development project, also set Site URL to `http://localhost:3000`. Set the hosted minimum password length to **8**; editing local config does not change the hosted policy.
+2. Configure the recovery template described above, or use Supabase default PKCE confirmation link in the same browser that requested it.
+3. Run `npm run dev`, visit `http://localhost:3000/forgot-password`, and request a link for an approved test account. Development recovery requests always use `http://localhost:3000/reset-password`; production uses `NEXT_PUBLIC_SITE_URL` (normally `https://certs.uzyntra.com`). Redirects never use an untrusted request Host header.
+4. Open the email link, enter matching passwords of at least eight characters, and submit. The callback exchanges the code first; password fields appear only after the recovery session has been validated. Confirm the exact success message, automatic login redirect, and login with the new password.
+5. Check seven-character passwords, mismatched confirmation, missing/expired/reused links, a PKCE link in a different browser, and an offline submission. An ordinary login session alone must not authorize this recovery form.
+6. Run `npm run check`, then `npm run test:browser` after installing Chromium. Unit tests exercise both recovery exchanges, minimum length, session absence, network errors and link validation; browser tests check both routes and URL-token cleanup.

@@ -26,15 +26,27 @@ test("account security redirects anonymous users and invalid recovery links offe
   await expect(page).toHaveURL(/\/login$/);
   await page.getByRole("link", { name: "Forgot password?", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Forgot your password?" })).toBeVisible();
-  await page.goto("/auth/reset-password?error=expired");
-  await expect(page.getByRole("main").getByRole("alert")).toContainText("invalid or incomplete");
+  await page.goto("/reset-password?error=expired");
+  await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
   await expect(page.getByRole("link", { name: "Request a new reset link" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Update password" })).toHaveCount(0);
 });
 test("reset forms clear token URLs and do not load Speed Insights", async ({ page }) => {
-  const response = await page.goto("/auth/reset-password?token_hash=test-only-token&type=recovery");
+  const response = await page.goto("/reset-password?code=test-only-code");
   expect(response?.headers()["referrer-policy"]).toBe("no-referrer");
-  await expect(page).toHaveURL(/\/auth\/reset-password$/);
-  await expect(page.getByLabel("New password", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/reset-password$/);
+  await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("New password", { exact: true })).toHaveCount(0);
   await expect(page.locator('script[src*="speed-insights"]')).toHaveCount(0);
+});
+
+test("both recovery callback routes reject codes without a valid recovery session", async ({ page }) => {
+  for (const path of ["/reset-password?code=test-code", "/auth/reset-password?code=test-code"]) {
+    await page.goto(path);
+    await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
+    await expect(page.getByLabel("New password", { exact: true })).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(path.split("?")[0] + "$"));
+  }
+  await page.goto("/reset-password?code=first&code=second");
+  await expect(page.getByRole("button", { name: "Update password" })).toHaveCount(0);
 });

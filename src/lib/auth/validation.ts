@@ -16,7 +16,7 @@ export const registerSchema = z.object({
 
 export type AuthFormState = {
   status: "idle" | "error" | "success";
-  code?: "EMAIL_ALREADY_REGISTERED" | "EMAIL_UNVERIFIED" | "INVALID_RECOVERY";
+  code?: "EMAIL_ALREADY_REGISTERED" | "EMAIL_UNVERIFIED" | "INVALID_RECOVERY" | "MISSING_RECOVERY_SESSION";
   message?: string;
   email?: string;
   retryAfterSeconds?: number;
@@ -26,6 +26,6 @@ export type AuthFormState = {
 export const initialAuthState: AuthFormState = { status: "idle" };
 
 export const passwordResetSchema = z.object({
-  password: password.min(12, "Use at least 12 characters.").refine((value) => new Set(value).size >= 6, "Use a varied password or a longer passphrase."),
+  password: password.min(8, "Use at least 8 characters."),
   confirmPassword: z.string(),
 }).refine((value) => value.password === value.confirmPassword, { path: ["confirmPassword"], message: "Passwords must match." });
