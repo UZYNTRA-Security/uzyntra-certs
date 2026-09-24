@@ -5,6 +5,7 @@ import { resendConfirmationAction } from "@/lib/auth/actions";
 import { initialAuthState, RESEND_COOLDOWN_SECONDS } from "@/lib/auth/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { remainingSeconds, cooldownLabel } from "@/lib/auth/cooldown";
 
 const storageKey = "uzyntra-confirmation-retry-at";
 
@@ -31,15 +32,13 @@ export function ConfirmationResend({ email, initialWait = 0, enabled = true }: {
     try { stored = Number(sessionStorage.getItem(storageKey)) || 0; } catch { /* Use the in-memory timer. */ }
     deadline.current = Math.max(deadline.current, stored, Date.now() + initialWait * 1000);
     try { sessionStorage.setItem(storageKey, String(deadline.current)); } catch { /* Use the in-memory timer. */ }
-    const tick = () => setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
+    const tick = () => setRemaining(remainingSeconds(deadline.current));
     // Schedule the initial update rather than synchronously setting effect state.
     const timeout = window.setTimeout(tick, 0);
     const timer = window.setInterval(tick, 1000);
     return () => { window.clearTimeout(timeout); window.clearInterval(timer); };
   }, [initialWait]);
 
-  const minutes = Math.floor(remaining / 60);
-  const seconds = String(remaining % 60).padStart(2, "0");
 
   return <form id="resend-confirmation" action={action} className="space-y-4" aria-busy={pending}>
     <div className="space-y-2">
@@ -51,7 +50,7 @@ export function ConfirmationResend({ email, initialWait = 0, enabled = true }: {
     <p className="text-xs leading-relaxed text-muted-foreground">If this email is already registered and verified, sign in. Resending is for accounts that still need email confirmation.</p>
     {state.message && <p role={state.status === "error" ? "alert" : "status"} className="text-sm leading-relaxed text-muted-foreground">{state.message}</p>}
     <Button type="submit" variant="outline" disabled={pending || remaining > 0 || !enabled}>
-      {pending ? "Requesting email…" : remaining > 0 ? `Resend in ${minutes}:${seconds}` : "Resend confirmation email"}
+      {pending ? "Requesting email…" : remaining > 0 ? `Resend in ${cooldownLabel(remaining)}` : "Resend confirmation email"}
     </Button>
     {remaining > 0 && <p className="text-xs text-muted-foreground">You can request another email once the 90-second countdown finishes.</p>}
   </form>;

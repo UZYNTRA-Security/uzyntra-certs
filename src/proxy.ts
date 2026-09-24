@@ -11,13 +11,13 @@ export async function proxy(request: NextRequest) {
   // Public shell pages have no user data and must not depend on Auth uptime.
   // Future protected routes must explicitly opt in here AND enforce guards/RLS.
   const path = request.nextUrl.pathname;
-  const response = path.startsWith("/auth/") || path === "/dashboard" || path.startsWith("/dashboard/") || path === "/login" || path === "/register"
+  const response = path.startsWith("/auth/") || path === "/dashboard" || path.startsWith("/dashboard/") || path === "/login" || path === "/register" || path === "/forgot-password"
     ? await updateSession(request, headers)
     : NextResponse.next({ request: { headers } });
   response.headers.set("Content-Security-Policy", csp);
   // Never share session-bearing HTML or per-request nonces through a CDN.
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
-  if (process.env.VERCEL_ENV !== "production" || ["/login", "/register", "/verify", "/dashboard"].includes(path) || path.startsWith("/dashboard/") || path.startsWith("/auth/")) {
+  if (process.env.VERCEL_ENV !== "production" || ["/login", "/register", "/forgot-password", "/verify", "/dashboard"].includes(path) || path.startsWith("/dashboard/") || path.startsWith("/auth/") || path.startsWith("/v/")) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   return response;

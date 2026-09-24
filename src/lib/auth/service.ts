@@ -7,7 +7,8 @@ export type AuthResult = { redirect: "/dashboard" | "/login" } | { state: AuthFo
 
 const unavailable: AuthFormState = { status: "error", message: "Account access is temporarily unavailable. Please try again later." };
 export const confirmationMessage = "If this email needs verification, a confirmation link will arrive shortly. Check your inbox and spam folder. If this email is already registered and verified, sign in instead.";
-export const alreadyRegisteredMessage = "This email is already registered. Sign in, or resend the confirmation email if you have not verified it yet.";
+export const alreadyRegisteredMessage = "An account already exists with this email. Please sign in instead.";
+export type RegistrationState = "new" | "unverified" | "verified";
 const alreadyRegistered = (email: string): AuthResult => ({ state: { status: "error", code: "EMAIL_ALREADY_REGISTERED", message: alreadyRegisteredMessage, email } });
 
 export async function login(auth: AuthApi, input: unknown): Promise<AuthResult> {
@@ -24,13 +25,15 @@ export async function login(auth: AuthApi, input: unknown): Promise<AuthResult> 
   } catch { return { state: unavailable }; }
 }
 
-export async function register(auth: AuthApi, input: unknown, origin: string, emailExists: (email: string) => Promise<boolean>): Promise<AuthResult> {
+export async function register(auth: AuthApi, input: unknown, origin: string, emailExists: (email: string) => Promise<RegistrationState>): Promise<AuthResult> {
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) return { state: { status: "error", errors: parsed.error.flatten().fieldErrors } };
   try {
     const { password } = parsed.data;
     const email = parsed.data.email.toLowerCase();
-    if (await emailExists(email)) return alreadyRegistered(email);
+    const accountState = await emailExists(email);
+    if (accountState === "verified") return alreadyRegistered(email);
+    if (accountState === "unverified") return { state: { status: "error", code: "EMAIL_UNVERIFIED", email, message: "This email already has an account, but email verification is incomplete." } };
     const { data, error } = await auth.signUp({ email, password, options: { emailRedirectTo: new URL("/auth/callback", origin).href } });
     if (error) {
       if (error.code === "user_already_exists" || error.code === "email_exists") return alreadyRegistered(email);
@@ -43,7 +46,7 @@ export async function register(auth: AuthApi, input: unknown, origin: string, em
     }
     // Supabase may obfuscate existing confirmed users instead of returning an error.
     if (data.user?.identities?.length === 0) return alreadyRegistered(email);
-    return { state: { status: "success", message: "A confirmation email has been requested. Check your inbox and spam folder, then follow the link to verify your email.", email, retryAfterSeconds: RESEND_COOLDOWN_SECONDS } };
+    return { state: { status: "success", message: "Account created successfully. Please check your email to verify your account.", email, retryAfterSeconds: RESEND_COOLDOWN_SECONDS } };
   } catch { return { state: unavailable }; }
 }
 

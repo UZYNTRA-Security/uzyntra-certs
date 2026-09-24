@@ -10,6 +10,17 @@ assert.equal(new URL(dashboard.headers.get("location"), base).pathname, "/login"
 assert.match(dashboard.headers.get("cache-control"), /no-store/);
 assert.ok(dashboard.headers.get("content-security-policy"));
 
+const security = await request("/dashboard/security");
+assert.equal(security.status, 307);
+assert.equal(new URL(security.headers.get("location"), base).pathname, "/login");
+for (const path of ["/forgot-password", "/auth/reset-password", "/verify"]) {
+  const response = await request(path);
+  assert.equal(response.status, 200, path);
+  assert.ok(response.headers.get("content-security-policy"));
+  assert.match(response.headers.get("cache-control"), /no-store/);
+  if (path.startsWith("/auth/")) assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+}
+
 for (const path of ["/login", "/register"]) {
   const response = await request(path);
   assert.equal(response.status, 200, path);

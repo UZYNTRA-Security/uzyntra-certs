@@ -7,6 +7,7 @@ import { initialAuthState, loginSchema, registerSchema, type AuthFormState } fro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmationResend } from "@/components/auth/confirmation-resend";
+import { emailProviderUrl } from "@/lib/auth/cooldown";
 
 export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enabled: boolean }) {
   const registration = mode === "register";
@@ -27,7 +28,8 @@ export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enable
   if (state.status === "success") return <div className="space-y-5">
     <h2 className="text-xl font-semibold">Check your email</h2>
     <p role="status" className="text-sm leading-relaxed text-muted-foreground">{state.message}</p>
-    <ConfirmationResend email={state.email} initialWait={state.retryAfterSeconds} enabled={enabled} />
+    {emailProviderUrl(state.email) && <Button asChild variant="outline"><a href={emailProviderUrl(state.email)} target="_blank" rel="noopener noreferrer">Open email provider</a></Button>}
+    <details><summary className="cursor-pointer text-sm text-primary">Didn&apos;t receive the email?</summary><div className="mt-4"><ConfirmationResend email={state.email} initialWait={state.retryAfterSeconds} enabled={enabled} /></div></details>
     <Button asChild variant="outline"><Link href="/login">Return to sign in</Link></Button>
   </div>;
 
@@ -57,7 +59,9 @@ export function AuthForm({ mode, enabled }: { mode: "login" | "register"; enable
   </form>
     {registration && state.code === "EMAIL_ALREADY_REGISTERED" && <div className="space-y-4 border-t pt-5">
       <Button asChild variant="outline"><Link href="/login">Sign in to your account</Link></Button>
-      <details><summary className="cursor-pointer text-sm text-primary">Email not verified? Resend confirmation</summary><div className="mt-4"><ConfirmationResend email={state.email} enabled={enabled} /></div></details>
+      <Button asChild variant="outline"><Link href="/forgot-password">Forgot password</Link></Button>
     </div>}
+    {registration && state.code === "EMAIL_UNVERIFIED" && <div className="space-y-4 border-t pt-5"><p className="text-sm">Didn&apos;t receive the email?</p><ConfirmationResend key={state.email} email={state.email} enabled={enabled} /></div>}
+    {!registration && <Link href="/forgot-password" className="text-sm text-primary underline">Forgot password?</Link>}
   </div>;
 }

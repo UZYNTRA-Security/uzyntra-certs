@@ -11,3 +11,7 @@ supabase/.branches/
 *.log
 .DS_Store
 Thumbs.db
+
+# Browser test artifacts
+/test-results/
+/playwright-report/

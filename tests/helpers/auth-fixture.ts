@@ -14,6 +14,7 @@ export function authFixture({ confirmed = true, expired = false, resendError, si
     app_metadata: { provider: "email" }, user_metadata: {}, created_at: "2026-01-01T00:00:00Z",
   };
   let active = true;
+  let tokenConsumed = false;
   let refreshed = false;
   const session = () => {
     const expiresIn = expired && !refreshed ? -10 : 3600;
@@ -32,6 +33,7 @@ export function authFixture({ confirmed = true, expired = false, resendError, si
       active = true;
       return Response.json(session());
     }
+    if (url.pathname.endsWith("/recover")) return Response.json({});
     if (url.pathname.endsWith("/signup")) return signupError
       ? Response.json({ code: signupError.code, error_code: signupError.code, msg: "Provider details" }, { status: signupError.status })
       : Response.json({ ...user, email_confirmed_at: undefined, identities: [{ id: user.id, user_id: user.id, provider: "email" }] });
@@ -40,7 +42,11 @@ export function authFixture({ confirmed = true, expired = false, resendError, si
       : Response.json({});
     if (url.pathname.endsWith("/user")) return active ? Response.json(user) : Response.json({ msg: "Expired session" }, { status: 401 });
     if (url.pathname.endsWith("/logout")) { active = false; return new Response(null, { status: 204 }); }
-    if (url.pathname.endsWith("/verify")) return body.token_hash === "valid-token" ? Response.json(session()) : Response.json({ msg: "Expired token" }, { status: 403 });
+    if (url.pathname.endsWith("/verify")) {
+      if (body.token_hash !== "valid-token" || tokenConsumed) return Response.json({ msg: "Expired token" }, { status: 403 });
+      tokenConsumed = true; active = true;
+      return Response.json(session());
+    }
     throw new Error("Unexpected mock Auth endpoint");
   };
   const cookies = {

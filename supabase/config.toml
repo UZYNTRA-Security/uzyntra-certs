@@ -34,7 +34,7 @@ file_size_limit = "10MiB"
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "http://localhost:3000/auth/reset-password"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
@@ -51,6 +51,10 @@ enable_confirmations = true
 [auth.email.template.confirmation]
 subject = "Confirm your UZYNTRA Certs account"
 content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your UZYNTRA Certs password"
+content_path = "./supabase/templates/recovery.html"
 
 [auth.mfa.totp]
 enroll_enabled = false

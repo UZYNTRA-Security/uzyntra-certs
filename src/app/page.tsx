@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = pageMetadata("Digital credentials", "A dedicated home for UZYNTRA Security achievements and professional recognition. Explore the platform and upcoming credential verification.", "/");
+export const metadata = pageMetadata("Digital credentials", "A dedicated home for UZYNTRA Security achievements and professional recognition. Explore the platform and public credential verification.", "/");
 
 const categories = [
   { title: "Course certificates", description: "Learning milestones and completed training.", icon: GraduationCap },
@@ -22,8 +22,8 @@ export default function HomePage() {
         <p className="mb-7 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.18em] text-primary"><span className="size-1.5 rounded-full bg-primary" /> UZYNTRA Security / Certs</p>
         <h1 id="hero-heading" className="text-5xl font-semibold leading-[1.08] tracking-tight sm:text-7xl">Recognition.<br /><span className="text-muted-foreground">Built on trust.</span></h1>
         <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted-foreground">Every achievement has a story. We’re building a dedicated place to connect UZYNTRA credentials with the people who earned them.</p>
-        <div className="mt-8 flex flex-wrap gap-3"><Button asChild size="lg"><Link href="/verify">Explore verification <ArrowRight aria-hidden="true" /></Link></Button><Button asChild size="lg" variant="outline"><Link href="/about">About the platform</Link></Button></div>
-        <p className="mt-5 text-xs text-muted-foreground">Platform preview. Credential verification is not available yet.</p>
+        <div className="mt-8 flex flex-wrap gap-3"><Button asChild size="lg"><Link href="/verify">Verify a credential <ArrowRight aria-hidden="true" /></Link></Button><Button asChild size="lg" variant="outline"><Link href="/about">About the platform</Link></Button></div>
+        <p className="mt-5 text-xs text-muted-foreground">Check a published credential using its unique ID. No login required.</p>
       </div>
       <div className="relative overflow-hidden rounded-2xl border bg-card p-8 sm:p-10">
         <div aria-hidden="true" className="absolute -right-12 -top-12 size-56 rounded-full bg-primary/10 blur-3xl" />
@@ -35,7 +35,7 @@ export default function HomePage() {
       </div>
     </section>
     <section aria-labelledby="recognition-heading" className="mt-24">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-primary">Planned credential categories</p><h2 id="recognition-heading" className="text-3xl font-semibold tracking-tight">Recognition in every form.</h2></div><span className="rounded-full border px-3 py-1 text-xs text-muted-foreground">Coming in future phases</span></div>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-primary">Credential categories</p><h2 id="recognition-heading" className="text-3xl font-semibold tracking-tight">Recognition in every form.</h2></div><span className="rounded-full border px-3 py-1 text-xs text-muted-foreground">UZYNTRA recognition</span></div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{categories.map(({ title, description, icon: Icon }) => <Card key={title}><CardHeader><Icon aria-hidden="true" className="mb-4 size-6 text-primary" /><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader></Card>)}</div>
     </section>
   </div>;

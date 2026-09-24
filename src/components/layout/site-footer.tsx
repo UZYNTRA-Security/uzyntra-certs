@@ -13,7 +13,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <div className="mt-8 flex flex-wrap justify-between gap-3 border-t pt-5 text-xs text-muted-foreground">
-        <p>© UZYNTRA Security. All rights reserved.</p><p>Platform preview · Credential verification coming soon</p>
+        <p>© UZYNTRA Security. All rights reserved.</p><p>Public credential verification · UZYNTRA Security</p>
       </div>
     </div>
   </footer>;

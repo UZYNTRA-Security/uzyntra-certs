@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function CredentialNotFound() { return <div className="mx-auto max-w-2xl space-y-6 px-6 py-20"><h1 className="text-3xl font-semibold">No public credential found</h1><p>Check the complete ID and try again. This credential may not be published for public verification. Contact the issuer if you need assistance.</p><Link href="/verify" className="text-primary underline">Try another credential ID</Link></div>; }

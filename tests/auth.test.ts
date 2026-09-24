@@ -35,7 +35,7 @@ test("rate-limited resends show a cooldown without claiming an email was sent", 
 
 test("provider duplicate-account responses show the explicit registered message", async () => {
   const fixture = authFixture({ signupError: { code: "user_already_exists", status: 422 } });
-  const result = await register(fixture.server().auth, { ...credentials, confirmPassword: credentials.password }, "https://certs.example.com", async () => false);
+  const result = await register(fixture.server().auth, { ...credentials, confirmPassword: credentials.password }, "https://certs.example.com", async () => "new");
   assert.ok("state" in result);
   assert.equal(result.state.message, alreadyRegisteredMessage);
   assert.equal(result.state.code, "EMAIL_ALREADY_REGISTERED");
@@ -112,14 +112,14 @@ test("registration validates fields before contacting Auth and awaits verificati
   const invalid = await register(fixture.server().auth, { ...credentials, confirmPassword: "different" }, "https://certs.example.com", async () => { throw new Error("Must not query invalid input"); });
   assert.ok("state" in invalid && invalid.state.errors?.confirmPassword);
   assert.equal(fixture.requests.length, 0);
-  const result = await register(fixture.server().auth, { ...credentials, confirmPassword: credentials.password }, "https://certs.example.com", async () => false);
+  const result = await register(fixture.server().auth, { ...credentials, confirmPassword: credentials.password }, "https://certs.example.com", async () => "new");
   assert.ok("state" in result && result.state.status === "success");
   assert.equal(await verifiedUser(fixture.server().auth), null);
 });
 
 test("PKCE callback creates a session and ignores untrusted redirect targets", async () => {
   const fixture = authFixture();
-  await register(fixture.server().auth, { ...credentials, confirmPassword: credentials.password }, "https://certs.example.com", async () => false);
+  await register(fixture.server().auth, { ...credentials, confirmPassword: credentials.password }, "https://certs.example.com", async () => "new");
   assert.equal(await completeCallback(fixture.server().auth, new URLSearchParams("code=valid-code&next=https://attacker.example")), "/dashboard");
   assert.equal((await verifiedUser(fixture.server().auth))?.id, fixture.user.id);
 });
