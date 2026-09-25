@@ -1,88 +1,427 @@
 # UZYNTRA Certs
 
 Digital credential verification for **UZYNTRA Security**, deployed at **https://certs.uzyntra.com**.
+
 Repository: https://github.com/UZYNTRA-Security/uzyntra-certs
 
-This release implements production authentication and recovery, candidate identity, and the complete issuer-controlled credential lifecycle. Hosted activation requires the migrations and Auth settings below. Local tests do not prove production email delivery or hosted migration application.
+UZYNTRA Certs is a production-ready credential verification platform built with Next.js, Supabase, Vercel and Cloudflare. It supports candidate profiles, organization-based issuer operations, public verification, badges, certificate previews, PDF certificates, QR codes and staff administration.
 
-## Included
+## Current Feature Set
 
-- Email/password registration, verification, login, session refresh, logout and recovery.
-- Registration distinguishes new, unverified and verified accounts. Verified accounts see sign-in/recovery actions; only unverified accounts see confirmation resend.
-- Confirmation resend includes a 90-second countdown retained across same-tab reloads. Supabase rate limits remain authoritative; the browser timer is not an abuse-prevention boundary.
-- Protected account shell and security page with verification status and recovery entry point. MFA, session controls and deletion remain clearly labelled placeholders.
-- Candidate dashboard, private profile editing, opt-in public professional profiles, owned credentials and earned badges.
-- Cropped profile-photo uploads with server-side image decoding, metadata removal, WebP optimization and private Supabase Storage delivery.
-- Issuer console with draft creation, candidate assignment, review, issuance, revocation, badge uploads and verification activity.
-- UZYNTRA staff administration for organizations, members, credentials, badges and immutable audit logs.
-- Downloadable verification QR codes and branded credential cards.
-- Certificate previews and generated PDF downloads for issued credentials, cached in private Supabase Storage.
-- Super-admin organization creation and internal recovery-link generation for managed accounts.
-- PostgreSQL profiles, credentials, badges, credential/badge relationships, verification logs and shared rate-limit storage, with RLS and least-privilege grants.
-- Public exact-ID verification with issuer-approved details, status, badges, metadata, Open Graph artwork and structured data.
+### Authentication and Account Security
 
-Blockchain integration, external API access, billing, white-label credentials and MFA are not included. No fake credentials or badge assignments are seeded.
+- Email/password registration, login, logout and session refresh.
+- Email verification through Supabase Auth.
+- Password recovery with PKCE and token-hash support.
+- Recovery page validates reset proof before showing password fields.
+- 8-character minimum password validation for recovery.
+- Registration checks whether an email is new, unverified or already registered.
+- Confirmation resend with a 90-second browser countdown.
+- Secure Supabase SSR cookie handling.
+- Protected route middleware/proxy and server-side page guards.
+- Security page foundation with password change, MFA placeholder, sessions placeholder and activity placeholder.
+- Signed-in navbar shows Profile and Switch account instead of Sign in.
 
-## Stack and structure
+### Candidate Dashboard
 
-Next.js 16 App Router, React, TypeScript, Tailwind CSS, locally owned shadcn-compatible components, Supabase Auth/PostgreSQL/Storage clients, Vercel, Cloudflare DNS. Use Node.js 24 and the committed npm lockfile.
+- `/dashboard` candidate overview.
+- Candidate name and email verification status.
+- Profile completion strength.
+- Total credentials and earned badges.
+- Recent achievements.
+- Empty states for accounts with no issued credentials.
+- `/dashboard/profile` profile management.
+- Candidate profile fields:
+  - Full name
+  - Username
+  - Profile photo
+  - Headline
+  - Biography
+  - Country
+  - LinkedIn URL
+  - GitHub URL
+  - Portfolio URL
+  - Public/private visibility
+- Avatar upload, preview, crop, replace and remove.
+- Server-side image validation, metadata stripping and WebP optimization.
+- Initials avatar fallback.
+- `/dashboard/credentials` owned credential list with category filters.
+- `/dashboard/badges` earned badge display.
+
+### Public Candidate Profiles
+
+- `/profile/[username]` public profile page.
+- Public profiles show:
+  - Avatar
+  - Name
+  - Headline
+  - Bio
+  - Country
+  - Social links
+  - Verified public credentials
+  - Earned badges
+- Private profiles return 404.
+- Dynamic SEO metadata for public profiles.
+- No email address, Auth UUID or private credential data is exposed.
+
+### Organization and Issuer System
+
+- Organization-based issuer architecture.
+- `organizations` table with:
+  - Name
+  - Slug
+  - Logo URL
+  - Description
+  - Website
+  - Organization type
+  - Verified status
+- Organization types:
+  - SECURITY_COMPANY
+  - UNIVERSITY
+  - TRAINING_PROVIDER
+  - CORPORATE
+  - COMMUNITY
+- Verified statuses:
+  - PENDING
+  - VERIFIED
+  - SUSPENDED
+- UZYNTRA Security seeded as the first verified organization.
+- `organization_members` with roles:
+  - ADMIN
+  - REVIEWER
+  - ISSUER
+  - VIEWER
+- Organization-scoped RLS and permission checks.
+- Cross-organization credential isolation.
+- Only verified organizations can issue public credentials.
+
+### Issuer Console
+
+- `/issuer` organization credential operations console.
+- Organization switcher foundation.
+- Credential statistics.
+- Recent credential lifecycle activity.
+- `/issuer/create` credential draft creation.
+- Candidate assignment by verified account email.
+- Badge association during credential creation.
+- `/issuer/members` organization member list.
+- `/issuer/badges` validated badge artwork upload.
+- `/issuer/activity` verification activity.
+- Issuer lifecycle:
+  - Draft
+  - Pending Review
+  - Issued
+  - Revoked
+  - Expired
+- Role behavior:
+  - ISSUER creates drafts and submits for review.
+  - REVIEWER approves/issues and revokes.
+  - ADMIN has full organization lifecycle control.
+  - VIEWER has read-only access.
+
+### Admin Operations
+
+- `/admin` internal UZYNTRA staff dashboard.
+- Staff-only access for UZYNTRA Security ADMIN members.
+- Super-admin account:
+  - Email: `admin@uzyntra.com`
+  - Username: `uzyntra`
+  - Display name: `UZYNTRA`
+- Admin dashboard displays:
+  - Total organizations
+  - Total members
+  - Total credentials
+  - Pending reviews
+  - Issued credentials
+  - Revoked credentials
+  - Verification activity
+- `/admin/organizations`:
+  - View organizations
+  - Create internal organizations
+  - Verify organizations
+  - Suspend organizations
+  - View member and credential counts
+- `/admin/members`:
+  - Add issuer members
+  - Change roles
+  - Change member status
+  - Remove members with confirmation
+  - Generate Supabase password reset links for managed accounts
+- `/admin/credentials`:
+  - View all credentials
+  - Filter by status
+  - Search by credential ID, title or candidate
+  - View audit history
+  - Approve pending credentials
+  - Revoke issued credentials
+- `/admin/badges`:
+  - Upload badge artwork
+  - Edit badge metadata
+  - Activate/deactivate badges
+- `/admin/audit`:
+  - Actor
+  - Action
+  - Credential
+  - Organization
+  - Timestamp
+- Audit events are append-only and protected by database triggers.
+
+### Credential Lifecycle
+
+- Credential records include:
+  - Secure public credential ID
+  - Certificate slug
+  - Owner/candidate
+  - Organization
+  - Issuer user
+  - Reviewer/approver
+  - Credential type
+  - Category
+  - Title
+  - Description
+  - Issue date
+  - Optional expiry date
+  - Status
+  - Public holder snapshot
+  - Certificate file reference
+  - Audit timestamps
+- Credential categories:
+  - Courses
+  - Internships
+  - Employment
+  - Contributions
+  - Appreciations
+  - Bug Bounty
+  - Achievements
+- Credential public IDs are non-sequential and difficult to guess.
+- Public holder name is issuer-approved and does not change when a candidate edits their profile.
+- Revoked and expired credentials remain authentic but are not shown as currently valid.
+
+### Public Verification
+
+- `/verify` public credential lookup.
+- `/v/[credential_id]` public verification page.
+- Public verification displays:
+  - Credential title
+  - Recipient name
+  - Profile avatar when public
+  - Issuing organization
+  - Issue date
+  - Expiry date
+  - Credential ID
+  - Certificate slug
+  - Credential status
+  - Badges
+  - QR code
+  - Verification timestamp
+- Supports Verified, Revoked and Expired states.
+- No wildcard search or public directory of credentials.
+- Rate limiting stored in PostgreSQL.
+- Verification logs retain only minimal private records.
+- Cleanup function exists for old verification logs and rate-limit rows.
+
+### Certificate System
+
+- Certificate template architecture with `certificate_templates`.
+- Supported template types:
+  - Course Certificate
+  - Internship Certificate
+  - Employment Verification
+  - Contribution Award
+  - Appreciation Certificate
+  - Bug Bounty Recognition
+  - Achievement Certificate
+- `/certificate/[credential_id]` public certificate preview.
+- `/api/certificate/[credential_id]` generated PDF download.
+- PDF certificate includes:
+  - UZYNTRA Certs branding
+  - Candidate name
+  - Credential title
+  - Credential type
+  - Issuing organization
+  - Issue date
+  - Expiry date when applicable
+  - Credential ID
+  - Certificate slug
+  - Badge summary
+  - Real vector QR code
+  - Verification URL
+  - Authorized signature
+- PDF generation uses embedded signature fonts:
+  - Bastliga One as default signature font
+  - Allura as clean fallback
+  - Centralwell for premium recognition categories
+- Certificate PDFs are cached in the private Supabase `certificates` bucket.
+- Certificate download regenerates and overwrites the stored PDF to keep layout current.
+- Revoked, draft and pending credentials are blocked from certificate download.
+
+### Badge System
+
+- `public/badges/` contains 21 UZYNTRA badge PNG assets.
+- Badge catalog stored in Supabase.
+- Badges can be active or inactive.
+- Badges can be associated with issued credentials.
+- Earned badges display on:
+  - Candidate dashboard
+  - Candidate badge page
+  - Public profile
+  - Public verification page
+  - Certificate preview
+- Current seeded `usamamatrix` profile:
+  - Public profile enabled
+  - 21 issued public credentials
+  - 21 earned badges
+
+### QR and Sharing
+
+- QR PNG route: `/api/qr/[credential_id]`.
+- Downloadable QR codes.
+- Downloadable branded credential cards.
+- Share button using Web Share API when available.
+- Clipboard fallback for verification URLs.
+- OpenGraph and JSON-LD metadata for public verification.
+
+### Notification Preparation
+
+- `credential_notifications` table prepared for `credential_issued` events.
+- Issuance events queue notification records.
+- Email sending is not implemented yet.
+- Future credential-issued emails should include:
+  - Candidate name
+  - Credential title
+  - Download link
+  - Verification link
+
+### Security
+
+- Supabase RLS enabled for business tables.
+- Server-only Supabase secret key usage.
+- Public Supabase publishable key used only for browser-safe clients.
+- No hardcoded secrets.
+- CSP with nonce support.
+- HSTS, no-sniff, anti-framing and no-referrer protections.
+- Protected routes require verified sessions.
+- Organization permissions enforced at app and database layers.
+- Credential events are immutable.
+- Verification RPC returns only approved public fields.
+- Avatar, badge and certificate files use private Supabase Storage buckets.
+
+## Not Included Yet
+
+- MFA enforcement.
+- External partner onboarding.
+- Billing.
+- Public API access.
+- White-label credentials.
+- Blockchain verification.
+- Admin-created Supabase Auth accounts.
+- Automatic credential-issued email delivery.
+- PDF certificate visual designer/editor.
+
+## Stack
+
+- Next.js 16 App Router
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn-compatible local UI primitives
+- Supabase PostgreSQL
+- Supabase Auth
+- Supabase Storage
+- Vercel
+- Cloudflare DNS
+- Node.js 24
+
+## Project Structure
 
 ```text
-src/app/                    Routes, metadata, loading and error boundaries
-src/components/auth/        Registration, login, resend and recovery forms
-src/components/verification/ Public ID search
-src/components/layout/      UZYNTRA shell and scoped performance instrumentation
-src/components/ui/          Reusable primitives
-src/lib/auth/               Validated Auth services and Server Actions
-src/lib/verification/       Validated public projection and requester hashing
-src/lib/supabase/           Cookie clients, session refresh, server-only admin client
-src/lib/security/           Nonce-based CSP
-src/lib/env/                Public/deployment validation
+src/app/                    App Router routes, metadata, loading and error boundaries
+src/components/auth/        Registration, login, resend and recovery UI
+src/components/candidate/   Candidate dashboard cards, avatar, profile and credential UI
+src/components/admin/       Admin navigation, forms and operation controls
+src/components/issuer/      Issuer console controls
+src/components/verification/ Public search and share actions
+src/components/layout/      UZYNTRA shell and Speed Insights integration
+src/components/ui/          Reusable UI primitives
+src/lib/auth/               Auth services, guards, validation and recovery
+src/lib/admin/              Admin data loading and actions
+src/lib/candidate/          Candidate profile, avatar and credential loading
+src/lib/certificate/        Certificate data loading and PDF rendering
+src/lib/issuer/             Issuer guards, actions, schema and dashboard data
+src/lib/verification/       Public verification schemas, service and requester hashing
+src/lib/supabase/           Browser, server and admin Supabase clients
 src/types/database.ts       Migration-aligned database types
-src/proxy.ts                CSP, no-store responses, Auth session refresh and guards
 supabase/migrations/        Ordered SQL migrations
-supabase/templates/         Confirmation and password recovery email templates
-public/badges/              Supplied badge artwork, preserved unchanged
-scripts/                    Environment checks and HTTP smoke checks
-tests/                     SDK, PostgreSQL, security and browser tests
+supabase/templates/         Supabase email templates
+public/badges/              UZYNTRA badge artwork
+public/fonts/               Certificate signature fonts
+public/logo/                Certificate logo assets
+tests/                      SDK, database, security, QR, certificate and browser tests
 ```
 
-## Routes
+## Route Map
 
-| Route | Behavior |
+| Route | Purpose |
 | --- | --- |
-| `/`, `/about` | Branded informational pages |
-| `/verify` | Public credential ID search; no login |
-| `/v/[credential_id]` | Approved public details; explicit missing/unavailable/rate-limit states |
-| `/login`, `/register` | Authentication and state-aware registration |
-| `/forgot-password` | Generic password reset request |
-| `/reset-password` | Recovery code/token form and password update |
-| `/auth/reset-password` | Compatibility route for older email links |
-| `/auth/callback` | Signup confirmation via PKCE or email token hash |
-| `/dashboard` | Protected candidate overview |
-| `/dashboard/profile` | Profile, visibility and avatar management |
-| `/dashboard/credentials` | Owned credentials and category filters |
-| `/dashboard/badges` | Badges earned through owned credentials |
-| `/dashboard/security` | Protected security settings structure |
-| `/profile/[username]` | Public candidate profile; private profiles return 404 |
-| `/issuer` | Protected credential lifecycle queue for approved issuer staff |
-| `/issuer/create` | Create and assign a credential draft |
-| `/issuer/badges` | Validate and upload badge artwork |
-| `/admin` | Staff-only operational overview |
-| `/admin/organizations` | Verify or suspend issuer organizations |
-| `/admin/members` | Add, update, suspend or remove organization members |
-| `/admin/credentials` | Review, approve, revoke and audit credentials |
-| `/admin/badges` | Upload artwork and activate or deactivate badge catalog records |
-| `/admin/audit` | Review immutable credential lifecycle events |
-| `/certificate/[credential_id]` | Public certificate preview for issued credentials |
-| `/api/certificate/[credential_id]` | Generated certificate PDF download |
-| `/issuer/activity` | Minimal verification activity for issued credentials |
-| `/api/qr/[credential_id]` | QR PNG for an existing public credential |
-| `/api/health` | Liveness only; not database readiness |
+| `/` | Public home |
+| `/about` | Platform overview |
+| `/verify` | Public credential lookup |
+| `/v/[credential_id]` | Public credential verification |
+| `/certificate/[credential_id]` | Public certificate preview |
+| `/api/certificate/[credential_id]` | Secure generated PDF download |
+| `/api/qr/[credential_id]` | QR PNG download |
+| `/login` | Sign in |
+| `/register` | Register account |
+| `/forgot-password` | Request recovery email |
+| `/reset-password` | Reset password |
+| `/auth/callback` | Supabase Auth callback |
+| `/auth/reset-password` | Legacy reset compatibility route |
+| `/dashboard` | Candidate dashboard |
+| `/dashboard/profile` | Candidate profile editing |
+| `/dashboard/credentials` | Candidate credentials |
+| `/dashboard/badges` | Candidate badges |
+| `/dashboard/security` | Account security foundation |
+| `/profile/[username]` | Public candidate profile |
+| `/issuer` | Issuer overview |
+| `/issuer/create` | Create credential draft |
+| `/issuer/badges` | Badge uploads |
+| `/issuer/members` | Organization members |
+| `/issuer/activity` | Verification activity |
+| `/admin` | Admin overview |
+| `/admin/organizations` | Organization management |
+| `/admin/members` | Member and account recovery management |
+| `/admin/credentials` | Credential operations |
+| `/admin/badges` | Badge catalog management |
+| `/admin/audit` | Audit log viewer |
+| `/api/health` | Health endpoint |
 
-Only home/about are indexed. Account and verification URLs are noindex and omitted from the sitemap; public verification is shareable without exposing a searchable directory. Verification pages have canonical/OG metadata and escaped nonce-protected JSON-LD containing only approved fields.
+## Environment Variables
 
-## Local setup and environment
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Canonical site URL, e.g. `https://certs.uzyntra.com` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe Supabase publishable key |
+| `SUPABASE_SECRET_KEY` | Server-only Supabase secret key |
+| `VERCEL` / `VERCEL_ENV` | Managed by Vercel |
+
+Never expose `SUPABASE_SECRET_KEY` with a `NEXT_PUBLIC_` prefix.
+
+## Supabase Setup
+
+1. Apply migrations in `supabase/migrations/` in order.
+2. Enable Email/password authentication.
+3. Enable email verification.
+4. Set minimum hosted password length to 8.
+5. Set Auth Site URL to `https://certs.uzyntra.com`.
+6. Allow these redirect URLs:
+   - `https://certs.uzyntra.com/auth/callback`
+   - `https://certs.uzyntra.com/reset-password`
+7. Configure Supabase email templates from `supabase/templates/`.
+8. Configure SMTP, SPF/DKIM and email limits.
+9. Schedule `prune_verification_activity()` daily.
+
+## Development
 
 ```sh
 npm ci
@@ -90,126 +429,59 @@ cp .env.example .env.local
 npm run dev
 ```
 
-PowerShell: `Copy-Item .env.example .env.local`. Do not overwrite an existing configured file. Use a dedicated development Supabase project or the local Docker stack (`npm run db:start`). Never reset a hosted database; `npm run db:reset` destroys local data.
+PowerShell:
 
-| Variable | Use |
-| --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | Trusted callback/canonical origin: production `https://certs.uzyntra.com` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Project API URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe `sb_publishable_...` key |
-| `SUPABASE_SECRET_KEY` | Server-only `sb_secret_...` key for registration state/public verification RPCs and signed recovery grants |
-| `VERCEL`, `VERCEL_ENV` | Managed by Vercel; do not override |
-
-Obtain keys from Supabase **Settings > API Keys**. Never use a `NEXT_PUBLIC_` prefix for the secret. `.env.local` is ignored by Git. The admin client is separate from session clients and never receives user cookies. Missing secrets or RPCs fail closed. Builds validate public deployment configuration; passing a build does not establish database readiness.
-
-Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with matching development redirect allowlists. Production builds require HTTPS origins; the template uses the canonical production origin. Keep staging/preview projects separate. Public values are embedded at build time, so changes require redeployment.
-
-## Supabase activation
-
-1. Review and apply migrations in order to the intended project. See [database documentation](supabase/README.md). Previously applied migrations must not be blindly rerun. The identity and lifecycle migrations create private avatar/badge buckets and RLS policies. Vercel never applies migrations automatically.
-2. Set the four application environment variables above locally and in Vercel Production. Secret keys belong only in server environments.
-3. Enable Email/password, signups and **Confirm email**. Set the Supabase minimum password length to 8 for password recovery. Registration retains its existing 12-character application minimum. Keep MFA and anonymous signups disabled.
-4. Set Auth Site URL to `https://certs.uzyntra.com`. Allow exactly:
-   - `https://certs.uzyntra.com/auth/callback`
-   - `https://certs.uzyntra.com/reset-password`
-5. Copy `supabase/templates/confirmation.html` into the **Confirm signup** email template and `supabase/templates/recovery.html` into **Reset password**. Recovery uses `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`; the checked-in HTML escapes `&`. The reset page supports this cross-browser token-hash flow and standard PKCE `?code=...` links (including `sb_flow_id` when supplied). PKCE links need the requesting browser's verifier cookie. Implicit access-token URL fragments are not used by the SSR setup. Keep the older `/auth/reset-password` allowlist entry for links already sent.
-6. Configure a production SMTP sender, SPF/DKIM and provider delivery settings. Set Auth's minimum email-send interval to **90 seconds** and review the project/IP email limits. Set email OTP expiration to **3600 seconds or less**. Recovery-token expiry/reuse is enforced by Supabase.
-7. Configure daily verification-log cleanup using Supabase Cron as documented below. Add edge rate limits to registration, recovery and verification entry points before public launch.
-8. Run `npm run check:env -- --production` and `npm run check:supabase -- --production`. The readiness check reads Auth settings and checks that registration/verification RPCs exist. It creates no accounts, emails, credentials or audit records. It does not prove complete migration history, SMTP delivery, templates, MFA or redirect allowlists.
-
-### Grant organization access
-
-Issuer access is never inferred from email metadata. After a staff member has a verified Auth account, an authorized database operator grants the least-privileged role using the Auth UUID:
-
-```sql
-insert into public.organization_members (organization_id, user_id, role, status)
-values ('00000000-0000-4000-8000-000000000001', 'AUTH-USER-UUID', 'ISSUER', 'ACTIVE');
+```powershell
+Copy-Item .env.example .env.local
+npm.cmd run dev
 ```
-
-Use `REVIEWER` for staff who may approve, issue and revoke, `ADMIN` for organization and lifecycle administration, or `VIEWER` for read-only access. Suspend access by changing membership status to `SUSPENDED`. Only verified organizations can publish credentials. Membership and credential RLS isolate organizations even when a user guesses another organization's UUID.
-9. Use approved test accounts to verify new registration, existing-unverified resend, existing-verified sign-in actions, email confirmation, reset links in a different browser, invalid/reused links, logout and protected-route redirects.
-
-`supabase/config.toml` configures only the local stack; editing it does not update hosted Auth. Local Auth templates and callback allowlists are included.
-
-## Recovery and session security
-
-Both `/auth/reset-password` and `/reset-password` read recovery proof and run the same callback on hydration. A Server Action exchanges a PKCE code with `exchangeCodeForSession` (including `sb_flow_id` when present), or verifies a token hash with `verifyOtp` and type recovery. It requires a session and verifies the PKCE recovery flow marker. Missing, expired or invalid codes show recovery guidance before any password form appears. Strict Mode effect replay reuses one exchange promise so it does not consume the code twice.
-
-The successful exchange stores normal Supabase session cookies plus a signed HTTP-only recovery grant lasting ten minutes, tied to the verified user and exact access token. The update action verifies `getUser()` and the grant before `updateUser()`. A normal login session or a client-supplied flag cannot authorize recovery. A changed/refreshed session requires a new link. Passwords must match and contain 8-128 characters; validation and provider/network errors are reported without returning tokens or passwords. Tokens are removed from the visible URL after hydration. Refreshing the clean URL resumes only a valid signed recovery session. Otherwise, request a new link; the original code is single-use.
-
-Successful recovery requests global sign-out, clears the local session and shows "Password updated successfully. You can now sign in." before automatically redirecting to `/login` after 2.5 seconds. Already issued access JWTs may remain usable until their expiry; global sign-out revokes refresh sessions. A session-revocation failure is reported without claiming the password change failed. Passwords and tokens are never returned in action state or logs. Recovery emails use generic eligibility messaging; only registration discloses the requested three account states, with no account IDs or metadata.
-
-Cookie clients share SameSite=Lax, root path and production Secure settings. Server Components read cookies; actions and handlers explicitly use writable clients. Server Actions retain same-origin/CSRF protections. Proxy checks verified users before protected page streaming, and each protected page also checks identity. CSP, HSTS, no-sniff, anti-framing, no-referrer on Auth routes, noindex and private/no-store responses are retained. Speed Insights runs only on `/`, `/about` and `/verify`, excluding Auth/token URLs and private pages.
-
-## Public verification security
-
-- Database records are private by default. An operator must approve `public_visible` and an issuer-controlled `public_holder_name`. User profile edits cannot change the public holder snapshot.
-- Default public IDs use a UUID's random 128-bit suffix; do not replace this with sequential or easily guessed IDs. The shorter documentation example is an illustration, not the issuance generator.
-- The service-only RPC accepts a complete exact ID and returns only ID, title, type, holder snapshot, fixed issuer, dates, effective status and associated badge display fields. No wildcard, list or search-by-person API exists.
-- An active record past its expiry date is shown as expired, and a future-issued record is not yet valid. Revoked/suspended records never receive the Verified label. Unpublished and unknown records look identical.
-- Shared PostgreSQL rate limits allow 30 checks/minute/requester across server instances; missing identities share a conservative bucket. Hashes use a domain-separated HMAC with the server secret. Raw IP, country and user agent are not retained by this release.
-- On Vercel, the platform-overwritten `x-forwarded-for` identifies the requester. Off Vercel it is ignored. Keep Cloudflare in **DNS-only** mode unless a reviewed trusted-proxy configuration exists. A proxy can cause users to share limits. IP limits reduce bulk enumeration; they do not prevent distributed abuse. Configure Vercel/Cloudflare edge controls as well.
-- Each permitted lookup records a minimal outcome and internal credential reference. Logs are private. `prune_verification_activity()` deletes logs older than 30 days and rate-limit entries older than one day; schedule it daily. No cleanup occurs automatically without the schedule.
-- Database errors display temporary unavailability, never a fabricated missing/verified result. Verification uses fresh no-store rendering so status changes take effect on the next visit.
 
 ## Validation
 
 ```sh
-npm run check       # lint, TypeScript, SDK/PostgreSQL tests, production build
-npx playwright install chromium
+npm run lint
+npm run typecheck
+npm test
+npm run build
 npm run test:browser
-# With npm start -- --hostname 127.0.0.1 --port 3100 running:
-npm run test:auth-routes
 ```
 
-PostgreSQL tests apply the actual migrations in isolated PGlite and exercise grants, RLS, cross-user denial, profile visibility, avatar ownership/deletion, private/public projections, statuses, rate limits, logs and retention. Image tests decode and optimize real raster bytes and reject malformed, mismatched or oversized inputs. Auth tests run the real SDK against a controlled transport, including recovery token rejection/reuse and session cleanup. Browser tests check public verification, protected-route redirects, recovery UI and resend cooldown persistence without sending real email or creating production accounts. Hosted SMTP, Storage and publication still require a staging acceptance test.
+On this Windows environment, unit tests may require the Node user-info shim:
 
-## Vercel and Cloudflare deployment
+```powershell
+node --import "data:text/javascript,process.geteuid=()=>0" --import tsx --test tests/*.test.ts
+```
 
-1. Connect the GitHub repository, use `main`, Next.js preset, root `.`, Node 24.x, `npm ci`, and `npm run build`.
-2. In **Settings > Environment Variables**, add the four listed variables for Production. Mark `SUPABASE_SECRET_KEY` Sensitive. Configure Preview separately with a staging project.
-3. Apply reviewed Supabase migrations and Auth settings before switching traffic to the new release.
-4. Push or deploy the reviewed commit. If variables were added after deployment began, redeploy from **Deployments**. Git integration may deploy immediately after a push.
-5. Add `certs.uzyntra.com` in Vercel Domains. Use Vercel's exact DNS/ownership records in Cloudflare, initially DNS-only; verify TLS and preserve unrelated records.
-6. Verify public pages, Auth/recovery, headers, robots, metadata and an approved published credential. A successful build does not create credentials. Roll back the app if checks fail; database rollback requires separate review.
+## Deployment
 
-## Production checklist
+1. Push to `main`.
+2. Vercel builds with Node.js 24.
+3. Configure production environment variables in Vercel.
+4. Apply Supabase migrations before testing new database-backed features.
+5. Verify:
+   - Auth flows
+   - Dashboard access
+   - Issuer access
+   - Admin access
+   - Public verification
+   - Certificate preview
+   - PDF download
+   - QR code generation
 
-- [ ] Correct project, branch, domain, Node version and production environment.
-- [ ] Secret remains server-only; no local secrets in Git.
-- [ ] All reviewed migrations applied and database types reconciled.
-- [ ] SMTP, templates, email verification, callback URLs, expiry and rate limits configured.
-- [ ] Daily `prune_verification_activity()` job scheduled; edge abuse controls reviewed.
-- [ ] Lint, TypeScript, tests, build and browser checks pass.
-- [ ] Existing/unverified/new registration and cross-browser recovery tested on staging.
-- [ ] Only approved real credentials published; private fields absent from public responses.
-- [ ] Active, expired, suspended, revoked and missing results reviewed.
-- [ ] CSP/security headers, mobile/keyboard use and rollback procedure verified.
+## Production Checklist
 
-## Badge assets and next phases
-
-Always inspect `public/badges/` before working on badges or pushing supplied artwork. The directory currently contains 21 UZYNTRA badge PNGs. Keep their filenames and artwork. Badge files seed the approved catalog in Phase 7. The `usamamatrix` public profile receives issued UZYNTRA credentials only through the controlled migration and audit event path requested by UZYNTRA operations.
-
-The staff super-admin account is `admin@uzyntra.com`. When that Supabase Auth user exists, the Phase 7 migration sets its profile username to `UZYNTRA` and grants active `ADMIN` membership in UZYNTRA Security.
-
-Next: external partner onboarding, billing, API access and white-label credentials. These features remain outside this release.
-
-## References
-
-- [Supabase password authentication and recovery](https://supabase.com/docs/guides/auth/passwords)
-- [Supabase email templates](https://supabase.com/docs/guides/auth/auth-email-templates)
-- [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)
-- [Vercel environment variables](https://vercel.com/docs/environment-variables/managing-environment-variables)
-- [Vercel request headers and proxy trust](https://vercel.com/docs/headers/request-headers)
-- [Next.js CSP](https://nextjs.org/docs/app/guides/content-security-policy)
+- [ ] Environment variables configured.
+- [ ] Supabase migrations applied.
+- [ ] Supabase Auth settings and redirect URLs configured.
+- [ ] SMTP configured and verified.
+- [ ] RLS enabled and tested.
+- [ ] Admin account active.
+- [ ] Organization roles reviewed.
+- [ ] Only approved real credentials published.
+- [ ] Certificate PDFs download correctly.
+- [ ] QR codes scan correctly.
+- [ ] Public verification returns only approved fields.
+- [ ] Lint, TypeScript, unit tests, build and browser tests pass.
+- [ ] Vercel deployment verified on `certs.uzyntra.com`.
 
 Copyright UZYNTRA Security. No open-source license is granted by this repository.
-
-## Testing password recovery locally
-
-1. Add `http://localhost:3000/reset-password` and `https://certs.uzyntra.com/reset-password` in Supabase Auth > URL Configuration > Redirect URLs. For a development project, also set Site URL to `http://localhost:3000`. Set the hosted minimum password length to **8**; editing local config does not change the hosted policy.
-2. Configure the recovery template described above, or use Supabase default PKCE confirmation link in the same browser that requested it.
-3. Run `npm run dev`, visit `http://localhost:3000/forgot-password`, and request a link for an approved test account. Development recovery requests always use `http://localhost:3000/reset-password`; production uses `NEXT_PUBLIC_SITE_URL` (normally `https://certs.uzyntra.com`). Redirects never use an untrusted request Host header.
-4. Open the email link, enter matching passwords of at least eight characters, and submit. The callback exchanges the code first; password fields appear only after the recovery session has been validated. Confirm the exact success message, automatic login redirect, and login with the new password.
-5. Check seven-character passwords, mismatched confirmation, missing/expired/reused links, a PKCE link in a different browser, and an offline submission. An ordinary login session alone must not authorize this recovery form.
-6. Run `npm run check`, then `npm run test:browser` after installing Chromium. Unit tests exercise both recovery exchanges, minimum length, session absence, network errors and link validation; browser tests check both routes and URL-token cleanup.
