@@ -1,4 +1,5 @@
 import { getSiteUrl } from "@/lib/metadata";
+import QRCode from "qrcode";
 
 type CertificatePdfInput = {
   credential_id: string;
@@ -23,13 +24,17 @@ export function renderCertificatePdf(credential: CertificatePdfInput) {
   const badge = credential.badges[0];
   const credentialLines = chunks(credential.credential_id, 34);
   const certificateLines = chunks(certificateUrl, 68);
+  const qr = pdfQr(verifyUrl, 620, 326, 124);
   const content = [
     "q",
     "0.055 0.075 0.105 rg 0 0 842 595 re f",
     "0.40 0.88 0.62 RG 3 w 28 28 786 539 re S",
     "0.40 0.88 0.62 RG 1 w 42 42 758 511 re S",
+    "0.40 0.88 0.62 RG 2 w 60 478 34 42 re S",
+    "0.40 0.88 0.62 RG 2 w 68 499 8 8 re S 80 499 8 8 re S 68 486 20 2 re S",
     "0.40 0.88 0.62 rg 60 515 192 4 re f",
-    "BT /F1 15 Tf 0.40 0.88 0.62 rg 60 488 Td (UZYNTRA CERTS) Tj ET",
+    "BT /F1 15 Tf 0.40 0.88 0.62 rg 108 492 Td (UZYNTRA CERTS) Tj ET",
+    "BT /F1 8 Tf 0.74 0.78 0.84 rg 109 480 Td (by UZYNTRA Security) Tj ET",
     "BT /F2 36 Tf 0.96 0.97 0.98 rg 60 438 Td (Certificate of Verification) Tj ET",
     `BT /F1 14 Tf 0.74 0.78 0.84 rg 62 404 Td (This certifies that) Tj ET`,
     `BT /F2 30 Tf 0.96 0.97 0.98 rg 62 362 Td (${esc(line(credential.holder, 36))}) Tj ET`,
@@ -42,10 +47,10 @@ export function renderCertificatePdf(credential: CertificatePdfInput) {
     ...credentialLines.map((value, index) => `BT /F1 9 Tf 0.86 0.89 0.94 rg 140 ${194 - index * 13} Td (${esc(value)}) Tj ET`),
     `BT /F1 10 Tf 0.78 0.81 0.86 rg 62 154 Td (Certificate slug: ${esc(line(credential.certificate_slug, 44))}) Tj ET`,
     badge ? `BT /F1 10 Tf 0.40 0.88 0.62 rg 62 133 Td (Badge: ${esc(line(badge.name, 48))}${badge.level ? ` / ${esc(line(badge.level, 18))}` : ""}) Tj ET` : "",
-    "0.40 0.88 0.62 RG 1 w 620 338 118 118 re S",
-    "0.40 0.88 0.62 rg 638 416 82 8 re f 638 396 82 8 re f 638 376 82 8 re f",
-    "BT /F1 10 Tf 0.74 0.78 0.84 rg 601 304 Td (Scan QR on web certificate) Tj ET",
-    `BT /F1 8 Tf 0.78 0.81 0.86 rg 570 284 Td (${esc(line(verifyUrl, 46))}) Tj ET`,
+    "1 1 1 rg 614 320 136 136 re f",
+    qr,
+    "BT /F1 10 Tf 0.74 0.78 0.84 rg 596 300 Td (Scan to verify certificate) Tj ET",
+    `BT /F1 8 Tf 0.78 0.81 0.86 rg 570 282 Td (${esc(line(verifyUrl, 48))}) Tj ET`,
     "0.40 0.88 0.62 RG 1 w 62 86 230 1 re S 552 86 204 1 re S",
     "BT /F1 10 Tf 0.74 0.78 0.84 rg 62 67 Td (Authorized UZYNTRA Certs Record) Tj ET",
     "BT /F3 30 Tf 0.96 0.97 0.98 rg 575 108 Td (m.usama) Tj ET",
@@ -55,6 +60,21 @@ export function renderCertificatePdf(credential: CertificatePdfInput) {
   ].filter(Boolean).join("\n");
 
   return buildPdf(content);
+}
+
+function pdfQr(value: string, x: number, y: number, size: number) {
+  const qr = QRCode.create(value, { errorCorrectionLevel: "H" });
+  const count = qr.modules.size;
+  const cell = size / count;
+  const commands = [`0.055 0.075 0.105 rg`];
+  for (let row = 0; row < count; row++) {
+    for (let col = 0; col < count; col++) {
+      if (qr.modules.get(row, col)) {
+        commands.push(`${(x + col * cell).toFixed(2)} ${(y + size - (row + 1) * cell).toFixed(2)} ${cell.toFixed(2)} ${cell.toFixed(2)} re f`);
+      }
+    }
+  }
+  return commands.join("\n");
 }
 
 function buildPdf(content: string) {
