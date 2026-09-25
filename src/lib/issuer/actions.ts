@@ -10,11 +10,11 @@ const errorState = (message="Unable to complete this action. Please try again.")
 const refresh=()=>{revalidatePath("/issuer","layout");revalidatePath("/dashboard","layout");revalidatePath("/profile/[username]","page");};
 export async function createCredentialAction(_state:IssuerState,form:FormData):Promise<IssuerState>{
   try{
-    const {user}=await requireIssuer(); const parsed=credentialInputSchema.safeParse(Object.fromEntries(form)); if(!parsed.success)return errorState(parsed.error.issues[0].message);
+    const {user,organization}=await requireIssuer(); const parsed=credentialInputSchema.safeParse(Object.fromEntries(form)); if(!parsed.success)return errorState(parsed.error.issues[0].message);
     const admin=createAdminClient(); const candidate=await admin.rpc("find_candidate_for_issuance",{candidate_email:parsed.data.recipient_email});
     if(candidate.error||!candidate.data||typeof candidate.data!=="object"||!("id" in candidate.data)||!("full_name" in candidate.data))return errorState("No verified candidate account was found for that email.");
     const recipient=candidate.data as {id:string;full_name:string}; if(!recipient.full_name.trim())return errorState("The candidate must complete their full name before assignment.");
-    const created=await admin.rpc("create_credential_draft",{actor_user:user.id,recipient_user:recipient.id,new_type:parsed.data.credential_type,new_category:parsed.data.category,new_title:parsed.data.title,new_description:parsed.data.description,new_issue_date:parsed.data.issue_date,new_expiry_date:parsed.data.expiry_date,new_badge:parsed.data.badge_id});
+    const created=await admin.rpc("create_credential_draft",{actor_user:user.id,target_organization:organization.id,recipient_user:recipient.id,new_type:parsed.data.credential_type,new_category:parsed.data.category,new_title:parsed.data.title,new_description:parsed.data.description,new_issue_date:parsed.data.issue_date,new_expiry_date:parsed.data.expiry_date,new_badge:parsed.data.badge_id});
     if(created.error||!created.data||typeof created.data!=="object"||!("credential_id" in created.data))return errorState("The credential draft could not be created.");
     refresh();return{status:"success",message:"Credential draft created.",credentialId:String(created.data.credential_id)};
   }catch{return errorState();}

@@ -106,16 +106,16 @@ Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with
 7. Configure daily verification-log cleanup using Supabase Cron as documented below. Add edge rate limits to registration, recovery and verification entry points before public launch.
 8. Run `npm run check:env -- --production` and `npm run check:supabase -- --production`. The readiness check reads Auth settings and checks that registration/verification RPCs exist. It creates no accounts, emails, credentials or audit records. It does not prove complete migration history, SMTP delivery, templates, MFA or redirect allowlists.
 
-### Grant issuer access
+### Grant organization access
 
 Issuer access is never inferred from email metadata. After a staff member has a verified Auth account, an authorized database operator grants the least-privileged role using the Auth UUID:
 
 ```sql
-insert into public.credential_issuers (user_id, issuer_name, role)
-values ('AUTH-USER-UUID', 'UZYNTRA Security', 'ISSUER');
+insert into public.organization_members (organization_id, user_id, role, status)
+values ('00000000-0000-4000-8000-000000000001', 'AUTH-USER-UUID', 'ISSUER', 'ACTIVE');
 ```
 
-Use `REVIEWER` for staff who may issue and revoke, or `ADMIN` for lifecycle administration. Disable access with `active = false`. Do not expose a role-granting UI to candidates.
+Use `REVIEWER` for staff who may approve, issue and revoke, `ADMIN` for organization and lifecycle administration, or `VIEWER` for read-only access. Suspend access by changing membership status to `SUSPENDED`. Only verified organizations can publish credentials. Membership and credential RLS isolate organizations even when a user guesses another organization's UUID.
 9. Use approved test accounts to verify new registration, existing-unverified resend, existing-verified sign-in actions, email confirmation, reset links in a different browser, invalid/reused links, logout and protected-route redirects.
 
 `supabase/config.toml` configures only the local stack; editing it does not update hosted Auth. Local Auth templates and callback allowlists are included.
@@ -177,7 +177,7 @@ PostgreSQL tests apply the actual migrations in isolated PGlite and exercise gra
 
 ## Badge assets and next phases
 
-Always inspect `public/badges/` before working on badges or pushing supplied artwork. Existing assets are ai-engineering, cloud-security, cybersecurity, devsecops-engineer and offensive-ai PNGs. Keep their filenames and artwork. No record is assigned merely because an image exists; authorized future issuing work links approved badge records.
+Always inspect `public/badges/` before working on badges or pushing supplied artwork. The directory currently contains 20 UZYNTRA badge PNGs. Keep their filenames and artwork. Badge files are a catalog source, not proof that a candidate earned an award; an approved issued credential must link each earned badge.
 
 Next: operator administration and optional PDF certificate rendering. These features remain outside this release.
 
