@@ -11,6 +11,7 @@ Apply these migrations only to the dedicated UZYNTRA Certs project. No fabricate
 5. `20260924030000_candidate_identity.sql`: candidate profile fields and visibility, safe public profile projection, private avatar bucket and owner-scoped Storage policies.
 6. `20260924040000_credential_lifecycle.sql`: issuer roles, draft/review/issue/revoke lifecycle, immutable events, enhanced verification and private badge artwork.
 7. `20260924040100_exact_credential_statuses.sql`: removes legacy status labels after converting existing records to the five-state lifecycle.
+8. `20260925010000_certificate_presentation.sql`: certificate templates, credential certificate slugs, private certificate PDF bucket, organization creation RPC and pending issued-notification events.
 
 For a linked project:
 
@@ -33,6 +34,8 @@ With Docker, `npm run db:start` starts the local stack. `npm run db:reset` reapp
 | `credentials` | Issuer-controlled credential record | None | Read own records only |
 | `badges` | Approved badge catalog | Read | Read |
 | `credential_badges` | Composite-key relationship | None | Read relationships for own credentials |
+| `certificate_templates` | Active certificate template catalog | None | Organization member read |
+| `credential_notifications` | Pending credential-issued notification events | None | Reviewer/admin organization read |
 | `verification_logs` | Minimal public verification audit | None | None |
 | `verification_rate_limits` | Atomic shared rate limit | None | None |
 | `credential_issuers` | Explicit issuer staff memberships and roles | None | Read own membership |

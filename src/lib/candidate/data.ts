@@ -10,10 +10,14 @@ export const getCandidate = cache(async () => {
   const client = await createClient();
   const [profile, credentials] = await Promise.all([
     client.from("profiles").select("*").eq("id", user.id).single(),
-    client.from("credentials").select("credential_id,title,credential_type,issue_date,expiry_date,status,public_visible,credential_badges(badges(name,slug,icon_url,category,level,active))").eq("owner_id", user.id).order("issue_date", { ascending: false }),
+    client.from("credentials").select("credential_id,certificate_slug,title,credential_type,issue_date,expiry_date,status,public_visible,organization_id,credential_badges(badges(name,slug,icon_url,category,level,active))").eq("owner_id", user.id).order("issue_date", { ascending: false }),
   ]);
   if (profile.error || credentials.error) throw new Error("Your candidate account could not be loaded. Please try again.");
-  return { user, profile: profile.data, credentials: credentials.data.map((c) => candidateCredentialSchema.parse({ ...c, badges: c.credential_badges.flatMap((link) => link.badges?.active ? [link.badges] : []) })) };
+  const organizationIds = [...new Set(credentials.data.map((credential) => credential.organization_id))];
+  const organizations = organizationIds.length ? await createAdminClient().from("organizations").select("id,name").in("id", organizationIds) : { data: [], error: null };
+  if (organizations.error) throw new Error("Your credential issuers could not be loaded.");
+  const orgMap = new Map((organizations.data ?? []).map((organization) => [organization.id, organization.name]));
+  return { user, profile: profile.data, credentials: credentials.data.map((c) => candidateCredentialSchema.parse({ ...c, issuer: orgMap.get(c.organization_id), badges: c.credential_badges.flatMap((link) => link.badges?.active ? [link.badges] : []) })) };
 });
 
 export const getPublicProfile = cache(async (username: string) => {

@@ -16,10 +16,12 @@ This release implements production authentication and recovery, candidate identi
 - Issuer console with draft creation, candidate assignment, review, issuance, revocation, badge uploads and verification activity.
 - UZYNTRA staff administration for organizations, members, credentials, badges and immutable audit logs.
 - Downloadable verification QR codes and branded credential cards.
+- Certificate previews and generated PDF downloads for issued credentials, cached in private Supabase Storage.
+- Super-admin organization creation and internal recovery-link generation for managed accounts.
 - PostgreSQL profiles, credentials, badges, credential/badge relationships, verification logs and shared rate-limit storage, with RLS and least-privilege grants.
 - Public exact-ID verification with issuer-approved details, status, badges, metadata, Open Graph artwork and structured data.
 
-No general administration dashboard, PDF certificate generation, blockchain integration or MFA is included. No fake credentials or badge assignments are seeded.
+Blockchain integration, external API access, billing, white-label credentials and MFA are not included. No fake credentials or badge assignments are seeded.
 
 ## Stack and structure
 
@@ -72,6 +74,8 @@ tests/                     SDK, PostgreSQL, security and browser tests
 | `/admin/credentials` | Review, approve, revoke and audit credentials |
 | `/admin/badges` | Upload artwork and activate or deactivate badge catalog records |
 | `/admin/audit` | Review immutable credential lifecycle events |
+| `/certificate/[credential_id]` | Public certificate preview for issued credentials |
+| `/api/certificate/[credential_id]` | Generated certificate PDF download |
 | `/issuer/activity` | Minimal verification activity for issued credentials |
 | `/api/qr/[credential_id]` | QR PNG for an existing public credential |
 | `/api/health` | Liveness only; not database readiness |
@@ -188,7 +192,7 @@ Always inspect `public/badges/` before working on badges or pushing supplied art
 
 The staff super-admin account is `admin@uzyntra.com`. When that Supabase Auth user exists, the Phase 7 migration sets its profile username to `UZYNTRA` and grants active `ADMIN` membership in UZYNTRA Security.
 
-Next: optional PDF certificate rendering, external partner onboarding, billing and API access. These features remain outside this release.
+Next: external partner onboarding, billing, API access and white-label credentials. These features remain outside this release.
 
 ## References
 

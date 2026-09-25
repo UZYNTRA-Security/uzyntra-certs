@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Award, ArrowUpRight, ShieldCheck } from "lucide-react";
+import { Award, ArrowUpRight, Download, FileBadge, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "./avatar";
 import { CopyLink } from "./copy-link";
@@ -22,7 +22,33 @@ export function ProfileCard({ name, username, headline, avatar, visibility }: { 
 }
 export function CredentialCard({ credential, recipient = "Credential holder" }: { credential: CandidateCredential; recipient?: string }) {
   const url = new URL(`/v/${credential.credential_id}`, getSiteUrl()).toString();
-  return <Card className="flex h-full flex-col"><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs uppercase tracking-wider text-muted-foreground">{categories[credential.credential_type]}</span><VerificationStatus status={credentialStatus(credential)} /></div><CardTitle className="pt-3 text-lg">{credential.title}</CardTitle><p className="text-sm text-muted-foreground">UZYNTRA Security</p></CardHeader><CardContent className="flex flex-1 flex-col gap-4"><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">Issued</dt><dd>{credential.issue_date}</dd></div><div><dt className="text-muted-foreground">Expires</dt><dd>{credential.expiry_date || "No expiry"}</dd></div><div className="col-span-2"><dt className="text-muted-foreground">Credential ID</dt><dd className="break-all font-mono text-xs">{credential.credential_id}</dd></div></dl><div className="mt-auto space-y-3">{credential.public_visible ? <><Link href={`/v/${credential.credential_id}`} className="inline-flex items-center gap-1 text-sm text-primary underline">View credential <ArrowUpRight className="size-4" /></Link><CopyLink url={url} /><ShareActions credentialId={credential.credential_id} title={credential.title} recipient={recipient}/><p className="break-all text-xs text-muted-foreground">{url}</p></> : <p className="text-sm text-muted-foreground">Private credential. Public verification is not enabled by the issuer.</p>}</div></CardContent></Card>;
+  const issuer = credential.issuer || "UZYNTRA Security";
+  return <Card className="group relative flex h-full overflow-hidden border-primary/15 bg-[linear-gradient(135deg,rgba(108,222,160,.10),rgba(255,255,255,.02)_34%,rgba(17,21,28,.9))] shadow-lg shadow-black/20">
+    <div className="absolute right-5 top-5 opacity-10 transition-opacity group-hover:opacity-20"><FileBadge className="size-24 text-primary" aria-hidden /></div>
+    <div className="flex w-full flex-col">
+      <CardHeader className="relative">
+        <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs uppercase tracking-wider text-primary">{categories[credential.credential_type]}</span><VerificationStatus status={credentialStatus(credential)} /></div>
+        <CardTitle className="pt-5 text-xl leading-snug">{credential.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">Issued by <span className="text-foreground">{issuer}</span></p>
+      </CardHeader>
+      <CardContent className="relative flex flex-1 flex-col gap-5">
+        <dl className="grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-lg border bg-background/35 p-3"><dt className="text-xs text-muted-foreground">Issued</dt><dd className="mt-1 font-medium">{credential.issue_date}</dd></div>
+          <div className="rounded-lg border bg-background/35 p-3"><dt className="text-xs text-muted-foreground">Expires</dt><dd className="mt-1 font-medium">{credential.expiry_date || "No expiry"}</dd></div>
+          <div className="col-span-2 rounded-lg border bg-background/35 p-3"><dt className="text-xs text-muted-foreground">Credential ID</dt><dd className="mt-1 break-all font-mono text-xs">{credential.credential_id}</dd></div>
+        </dl>
+        <div className="mt-auto space-y-3">{credential.public_visible ? <>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Link href={`/certificate/${credential.credential_id}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"><FileBadge className="size-4" /> View certificate</Link>
+            <a href={`/api/certificate/${credential.credential_id}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-accent"><Download className="size-4" /> Download PDF</a>
+            <Link href={`/v/${credential.credential_id}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-accent">Verify <ArrowUpRight className="size-4" /></Link>
+          </div>
+          <CopyLink url={url} />
+          <ShareActions credentialId={credential.credential_id} title={credential.title} recipient={recipient}/>
+        </> : <p className="text-sm text-muted-foreground">Private credential. Public verification is not enabled by the issuer.</p>}</div>
+      </CardContent>
+    </div>
+  </Card>;
 }
 export function BadgeCard({ badge }: { badge: EarnedBadge }) {
   return <Card><CardContent className="space-y-3 pt-6"><Image src={badge.icon_url} alt={badge.name} width={128} height={128} className="mx-auto size-32 object-contain" /><div><p className="text-xs uppercase tracking-wider text-primary">{badge.category}</p><h3 className="mt-1 font-semibold">{badge.name}</h3></div><p className="text-sm text-muted-foreground">{badge.level || "Recognition"} · Earned {badge.earned_date}</p><VerificationStatus status={badge.status} /><p className="text-xs text-muted-foreground">Related credential</p>{badge.public_visible ? <Link className="block text-sm text-primary underline" href={`/v/${badge.credential_id}`}>{badge.credential_title}</Link> : <p className="text-sm">{badge.credential_title}</p>}</CardContent></Card>;

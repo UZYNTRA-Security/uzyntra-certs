@@ -18,6 +18,14 @@ const organizationStatusSchema = z.object({
   organization_id: z.uuid(),
   status: z.enum(["PENDING", "VERIFIED", "SUSPENDED"]),
 });
+const organizationCreateSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  organization_type: z.enum(["SECURITY_COMPANY", "UNIVERSITY", "TRAINING_PROVIDER", "CORPORATE", "COMMUNITY"]),
+  verified_status: z.enum(["PENDING", "VERIFIED", "SUSPENDED"]).default("PENDING"),
+  description: z.string().trim().max(2000).optional(),
+  website: z.string().trim().optional(),
+});
 const memberSchema = z.object({
   organization_id: z.uuid(),
   user_id: z.uuid(),
@@ -34,6 +42,18 @@ const badgeSchema = z.object({
   level: z.string().trim().max(80).transform((value) => value || null),
   active: z.enum(["true", "false"]).transform((value) => value === "true"),
 });
+const resetSchema = z.object({ email: z.email().trim().toLowerCase() });
+
+export async function createOrganizationAction(_state: AdminState, form: FormData): Promise<AdminState> {
+  try {
+    const { user } = await requirePlatformAdmin();
+    const parsed = organizationCreateSchema.parse(Object.fromEntries(form));
+    const result = await createAdminClient().rpc("admin_create_organization", { actor_user: user.id, new_name: parsed.name, new_slug: parsed.slug, new_type: parsed.organization_type, new_description: parsed.description || null, new_website: parsed.website || null, new_status: parsed.verified_status });
+    if (result.error) return fail(result.error.code === "23505" ? "That organization slug already exists." : "Organization was not created.");
+    refreshAdmin();
+    return ok("Organization created for internal management.");
+  } catch { return fail("Enter valid organization details."); }
+}
 
 export async function updateOrganizationStatusAction(_state: AdminState, form: FormData): Promise<AdminState> {
   try {
@@ -95,4 +115,15 @@ export async function updateBadgeAction(_state: AdminState, form: FormData): Pro
     refreshAdmin();
     return ok("Badge metadata updated.");
   } catch { return fail(); }
+}
+
+export async function generatePasswordResetLinkAction(_state: AdminState, form: FormData): Promise<AdminState> {
+  try {
+    await requirePlatformAdmin();
+    const parsed = resetSchema.parse(Object.fromEntries(form));
+    const admin = createAdminClient();
+    const result = await admin.auth.admin.generateLink({ type: "recovery", email: parsed.email, options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://certs.uzyntra.com"}/reset-password` } });
+    if (result.error) return fail("Password reset link could not be generated.");
+    return ok(result.data.properties?.action_link || "Password reset link generated.");
+  } catch { return fail("Enter a valid account email."); }
 }

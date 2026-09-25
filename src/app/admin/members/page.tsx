@@ -1,4 +1,4 @@
-import { MemberForm, RemoveMemberForm } from "@/components/admin/admin-forms";
+import { MemberForm, PasswordResetLinkForm, RemoveMemberForm } from "@/components/admin/admin-forms";
 import { getAdminMembers } from "@/lib/admin/data";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -13,6 +13,7 @@ export default async function AdminMembersPage() {
       <h2 className="text-2xl font-semibold">Issuer members</h2>
       <p className="mt-2 text-sm text-muted-foreground">Add members by profile UUID, change roles, suspend access or remove membership.</p>
     </div>
+    <section className="space-y-3"><h3 className="text-lg font-semibold">Super-admin password reset</h3><p className="text-sm text-muted-foreground">Generate a Supabase recovery link for an internal account. Send it through an approved staff channel.</p><PasswordResetLinkForm /></section>
     <MemberForm organizations={organizations} />
     <div className="overflow-x-auto rounded-xl border">
       <table className="w-full text-left text-sm">

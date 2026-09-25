@@ -17,9 +17,9 @@ Update: { headline?: string | null; country?: string | null; portfolio_url?: str
 Relationships: [];
 };
 credentials: {
-Row: { id: string; credential_id: string; owner_id: string; issuer_id: string | null; organization_id: string; issuer_user_id: string | null; approved_by: string | null; credential_type: CredentialType; category: CredentialCategory; title: string; description: string | null; issue_date: string; expiry_date: string | null; status: CredentialStatus; issued_at: string | null; revoked_at: string | null; revocation_reason: string | null; certificate_file_url: string | null; verification_hash: string; public_visible: boolean; public_holder_name: string | null; created_at: string; updated_at: string };
-Insert: { id?: string; credential_id?: string; owner_id: string; issuer_id?: string | null; organization_id: string; issuer_user_id?: string | null; approved_by?: string | null; credential_type: CredentialType; category: CredentialCategory; title: string; description?: string | null; issue_date: string; expiry_date?: string | null; status?: CredentialStatus; issued_at?: string | null; revoked_at?: string | null; revocation_reason?: string | null; certificate_file_url?: string | null; verification_hash?: string; public_visible?: boolean; public_holder_name?: string | null; created_at?: string; updated_at?: string };
-Update: { id?: string; credential_id?: string; owner_id?: string; issuer_id?: string | null; organization_id?: string; issuer_user_id?: string | null; approved_by?: string | null; credential_type?: CredentialType; category?: CredentialCategory; title?: string; description?: string | null; issue_date?: string; expiry_date?: string | null; status?: CredentialStatus; issued_at?: string | null; revoked_at?: string | null; revocation_reason?: string | null; certificate_file_url?: string | null; verification_hash?: string; public_visible?: boolean; public_holder_name?: string | null; created_at?: string; updated_at?: string };
+Row: { id: string; credential_id: string; certificate_slug: string; owner_id: string; issuer_id: string | null; organization_id: string; issuer_user_id: string | null; approved_by: string | null; credential_type: CredentialType; category: CredentialCategory; title: string; description: string | null; issue_date: string; expiry_date: string | null; status: CredentialStatus; issued_at: string | null; revoked_at: string | null; revocation_reason: string | null; certificate_file_url: string | null; verification_hash: string; public_visible: boolean; public_holder_name: string | null; created_at: string; updated_at: string };
+Insert: { id?: string; credential_id?: string; certificate_slug?: string; owner_id: string; issuer_id?: string | null; organization_id: string; issuer_user_id?: string | null; approved_by?: string | null; credential_type: CredentialType; category: CredentialCategory; title: string; description?: string | null; issue_date: string; expiry_date?: string | null; status?: CredentialStatus; issued_at?: string | null; revoked_at?: string | null; revocation_reason?: string | null; certificate_file_url?: string | null; verification_hash?: string; public_visible?: boolean; public_holder_name?: string | null; created_at?: string; updated_at?: string };
+Update: { id?: string; credential_id?: string; certificate_slug?: string; owner_id?: string; issuer_id?: string | null; organization_id?: string; issuer_user_id?: string | null; approved_by?: string | null; credential_type?: CredentialType; category?: CredentialCategory; title?: string; description?: string | null; issue_date?: string; expiry_date?: string | null; status?: CredentialStatus; issued_at?: string | null; revoked_at?: string | null; revocation_reason?: string | null; certificate_file_url?: string | null; verification_hash?: string; public_visible?: boolean; public_holder_name?: string | null; created_at?: string; updated_at?: string };
 Relationships: [{ foreignKeyName: "credentials_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }];
 };
 organizations: {
@@ -31,6 +31,11 @@ organization_members:{
 Row:{id:string;organization_id:string;user_id:string;role:OrganizationMemberRole;status:OrganizationMemberStatus;created_at:string};
 Insert:{id?:string;organization_id:string;user_id:string;role:OrganizationMemberRole;status?:OrganizationMemberStatus;created_at?:string};
 Update:{id?:string;organization_id?:string;user_id?:string;role?:OrganizationMemberRole;status?:OrganizationMemberStatus;created_at?:string};Relationships:[];
+};
+certificate_templates:{
+Row:{id:string;name:string;type:CredentialType;description:string|null;template_file:string;preview_image:string|null;is_active:boolean;created_at:string;updated_at:string};
+Insert:{id?:string;name:string;type:CredentialType;description?:string|null;template_file:string;preview_image?:string|null;is_active?:boolean;created_at?:string;updated_at?:string};
+Update:{id?:string;name?:string;type?:CredentialType;description?:string|null;template_file?:string;preview_image?:string|null;is_active?:boolean;created_at?:string;updated_at?:string};Relationships:[];
 };
 credential_issuers: {
 Row: { id: string; user_id: string; issuer_name: string; role: IssuerRole; active: boolean; created_at: string; updated_at: string };
@@ -77,6 +82,8 @@ has_organization_role:{Args:{allowed_roles?:OrganizationMemberRole[]};Returns:bo
 admin_update_organization_status:{Args:{actor_user:string;target_organization:string;new_status:OrganizationVerifiedStatus};Returns:Json};
 admin_upsert_organization_member:{Args:{actor_user:string;target_organization:string;target_user:string;new_role:OrganizationMemberRole;new_status?:OrganizationMemberStatus};Returns:Json};
 admin_remove_organization_member:{Args:{actor_user:string;target_membership:string};Returns:Json};
+admin_create_organization:{Args:{actor_user:string;new_name:string;new_slug:string;new_type:OrganizationType;new_description?:string|null;new_website?:string|null;new_status?:OrganizationVerifiedStatus};Returns:Json};
+make_certificate_slug:{Args:{new_title:string;public_id:string};Returns:string};
 create_credential_draft: { Args: {actor_user:string;target_organization?:string;recipient_user:string;new_type:CredentialType;new_category:CredentialCategory;new_title:string;new_description:string|null;new_issue_date:string;new_expiry_date:string|null;new_badge?:string|null}; Returns: Json };
 transition_credential: { Args: {actor_user:string;target_credential:string;requested_action:string;reason?:string|null}; Returns: Json };
 is_email_registered: { Args: {email_to_check: string}; Returns: boolean };

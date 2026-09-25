@@ -1,4 +1,4 @@
-import { OrganizationStatusForm } from "@/components/admin/admin-forms";
+import { OrganizationCreateForm, OrganizationStatusForm } from "@/components/admin/admin-forms";
 import { getAdminOrganizations } from "@/lib/admin/data";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -6,8 +6,9 @@ export const metadata = pageMetadata("Organizations", "Manage credential issuer 
 
 export default async function AdminOrganizationsPage() {
   const organizations = await getAdminOrganizations();
-  return <section className="space-y-5">
-    <h2 className="text-2xl font-semibold">Organizations</h2>
+  return <section className="space-y-6">
+    <div><h2 className="text-2xl font-semibold">Organizations</h2><p className="mt-2 text-sm text-muted-foreground">Create internal issuer organizations, verify trusted accounts and suspend compromised organizations.</p></div>
+    <OrganizationCreateForm />
     <div className="overflow-x-auto rounded-xl border">
       <table className="w-full text-left text-sm">
         <thead className="bg-muted/40"><tr><th className="p-3">Name</th><th className="p-3">Type</th><th className="p-3">Status</th><th className="p-3">Members</th><th className="p-3">Credentials</th><th className="p-3">Actions</th></tr></thead>
