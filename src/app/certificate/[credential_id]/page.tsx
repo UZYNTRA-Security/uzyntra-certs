@@ -40,7 +40,7 @@ export default async function CertificatePage({ params }: Props) {
         <div className="flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-4">
-              <Image src="/logo/uzyntra-pdf-logo.png" width={120} height={72} alt="" className="h-14 w-auto object-contain" />
+              <Image src="/logo/uzyntra-pdf-logo-dark.svg" width={120} height={72} alt="" className="h-14 w-auto object-contain" />
               <div><p className="text-sm font-semibold tracking-[.28em] text-primary">UZYNTRA CERTS</p><p className="text-xs text-muted-foreground">Enterprise credential verification</p></div>
             </div>
             <div className="mt-16 space-y-6">
