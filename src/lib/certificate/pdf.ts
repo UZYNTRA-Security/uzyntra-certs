@@ -38,28 +38,35 @@ export async function renderCertificatePdf(credential: CertificatePdfInput) {
   drawShell(page);
   if (logo) {
     const image = await pdf.embedPng(logo);
-    page.drawImage(image, { x: 58, y: 468, width: 52, height: 52 });
+    page.drawImage(image, { x: 56, y: 463, width: 66, height: 66 });
   } else {
     drawFallbackLogo(page);
   }
 
-  page.drawText("UZYNTRA CERTS", { x: 122, y: 496, size: 15, font: fonts.body, color: green });
-  page.drawText("by UZYNTRA Security", { x: 123, y: 482, size: 8, font: fonts.body, color: muted });
+  page.drawText("UZYNTRA CERTS", { x: 134, y: 498, size: 16, font: fonts.body, color: green });
+  page.drawText("by UZYNTRA Security", { x: 135, y: 482, size: 9, font: fonts.body, color: muted });
   page.drawText("Certificate of Verification", { x: 60, y: 430, size: 38, font: fonts.heading, color: text });
   page.drawText("This certifies that", { x: 62, y: 398, size: 14, font: fonts.body, color: muted });
   page.drawText(fitText(credential.holder, 34), { x: 62, y: 356, size: 31, font: fonts.heading, color: text });
   page.drawText("has earned", { x: 62, y: 326, size: 14, font: fonts.body, color: muted });
-  page.drawText(fitText(credential.title, 44), { x: 62, y: 288, size: 25, font: fonts.heading, color: green });
-  page.drawText(`Issued by ${fitText(credential.issuer, 48)}`, { x: 62, y: 258, size: 12, font: fonts.body, color: text });
+  page.drawText(fitText(credential.title, 40), { x: 62, y: 286, size: 30, font: fonts.heading, color: green });
+  page.drawText(`Issued by ${fitText(credential.issuer, 48)}`, { x: 62, y: 253, size: 12, font: fonts.body, color: text });
 
   drawMeta(page, fonts, credential);
-  drawQr(page, verifyUrl, 618, 323, 132);
-  page.drawText("Scan to verify certificate", { x: 598, y: 300, size: 10, font: fonts.body, color: muted });
-  page.drawText(fitText(verifyUrl, 50), { x: 565, y: 281, size: 8, font: fonts.mono, color: muted });
+  drawQr(page, verifyUrl, 618, 328, 132);
+  page.drawText("Scan to verify certificate", { x: 594, y: 306, size: 11, font: fonts.body, color: muted });
+  page.drawText("Status: VERIFIED", { x: 594, y: 283, size: 11, font: fonts.heading, color: green });
+  page.drawText(`Issued: ${formatDate(credential.issue_date)}`, { x: 594, y: 266, size: 9, font: fonts.body, color: muted });
+  page.drawText("Credential ID", { x: 594, y: 245, size: 8, font: fonts.body, color: muted });
+  drawWrapped(page, credential.credential_id, 594, 232, 25, 7, fonts.mono, text, 2);
+  page.drawText("Verification URL", { x: 594, y: 198, size: 8, font: fonts.body, color: muted });
+  drawWrapped(page, verifyUrl, 594, 185, 30, 7, fonts.mono, text, 2);
 
   drawSignature(page, fonts, credential);
-  page.drawText("Authorized UZYNTRA Certs Record", { x: 62, y: 68, size: 10, font: fonts.body, color: muted });
-  drawWrapped(page, `View online: ${certificateUrl}`, 62, 46, 68, 8, fonts.mono, faint);
+  page.drawText("Authorized UZYNTRA Certs Record", { x: 62, y: 68, size: 11, font: fonts.heading, color: muted });
+  page.drawText("Verification URL", { x: 62, y: 51, size: 8, font: fonts.body, color: faint });
+  drawWrapped(page, certificateUrl, 62, 38, 82, 8.5, fonts.mono, muted, 2);
+  page.drawText(`Credential ID: ${fitText(credential.credential_id, 52)}`, { x: 62, y: 18, size: 8.5, font: fonts.mono, color: muted });
 
   return Buffer.from(await pdf.save());
 }
@@ -97,7 +104,7 @@ function drawShell(page: PDFPage) {
   page.drawRectangle({ x: 42, y: 42, width: 758, height: 511, borderColor: green, borderWidth: 1 });
   page.drawRectangle({ x: 60, y: 516, width: 192, height: 4, color: green });
   page.drawRectangle({ x: 62, y: 86, width: 230, height: 1, color: green });
-  page.drawRectangle({ x: 552, y: 86, width: 204, height: 1, color: green });
+  page.drawRectangle({ x: 546, y: 94, width: 220, height: 1, color: green });
 }
 
 function drawFallbackLogo(page: PDFPage) {
@@ -109,12 +116,12 @@ function drawFallbackLogo(page: PDFPage) {
 
 function drawMeta(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
   const badge = credential.badges[0];
-  page.drawText(`Credential type: ${credential.credential_type.replaceAll("_", " ")}`, { x: 62, y: 232, size: 10, font: fonts.body, color: muted });
-  page.drawText(`Issue date: ${credential.issue_date}    Expiry date: ${credential.expiry_date ?? "No expiry"}`, { x: 62, y: 212, size: 10, font: fonts.body, color: muted });
-  page.drawText("Credential ID:", { x: 62, y: 190, size: 10, font: fonts.body, color: muted });
-  drawWrapped(page, credential.credential_id, 140, 190, 34, 9, fonts.mono, text);
-  page.drawText(`Certificate slug: ${fitText(credential.certificate_slug, 44)}`, { x: 62, y: 150, size: 10, font: fonts.body, color: muted });
-  if (badge) page.drawText(`Badge: ${fitText(badge.name, 48)}${badge.level ? ` / ${fitText(badge.level, 18)}` : ""}`, { x: 62, y: 129, size: 10, font: fonts.body, color: green });
+  page.drawText(`Credential type: ${credential.credential_type.replaceAll("_", " ")}`, { x: 62, y: 227, size: 10, font: fonts.body, color: muted });
+  page.drawText(`Issue date: ${formatDate(credential.issue_date)}    Expiry date: ${credential.expiry_date ? formatDate(credential.expiry_date) : "No expiry"}`, { x: 62, y: 207, size: 10, font: fonts.body, color: muted });
+  page.drawText("Credential ID:", { x: 62, y: 185, size: 10, font: fonts.body, color: muted });
+  drawWrapped(page, credential.credential_id, 140, 185, 34, 9, fonts.mono, text);
+  page.drawText(`Certificate slug: ${fitText(credential.certificate_slug, 44)}`, { x: 62, y: 145, size: 10, font: fonts.body, color: muted });
+  if (badge) page.drawText(`Badge: ${fitText(badge.name, 48)}${badge.level ? ` / ${fitText(badge.level, 18)}` : ""}`, { x: 62, y: 124, size: 10, font: fonts.body, color: green });
 }
 
 function drawQr(page: PDFPage, value: string, x: number, y: number, size: number) {
@@ -132,12 +139,18 @@ function drawQr(page: PDFPage, value: string, x: number, y: number, size: number
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
   const premium = credential.credential_type === "APPRECIATION" || credential.credential_type === "ACHIEVEMENT" || credential.credential_type === "BUG_BOUNTY";
   const font = premium ? fonts.centralwell : fonts.bastliga;
-  page.drawText("m.usama", { x: 574, y: 104, size: 35, font, color: text });
-  page.drawText("Authorized Signature", { x: 566, y: 68, size: 10, font: fonts.body, color: muted });
+  const signature = "m.usama";
+  const signatureSize = premium ? 40 : 42;
+  const signatureWidth = font.widthOfTextAtSize(signature, signatureSize);
+  const centerX = 656;
+  page.drawText(signature, { x: centerX - signatureWidth / 2, y: 118, size: signatureSize, font, color: text });
+  page.drawText("Authorized Signature", { x: 588, y: 73, size: 10, font: fonts.heading, color: muted });
+  page.drawText("CEO & Authorized Authority", { x: 580, y: 58, size: 9, font: fonts.body, color: muted });
+  page.drawText(fitText(credential.issuer, 30), { x: 604, y: 45, size: 9, font: fonts.body, color: muted });
 }
 
-function drawWrapped(page: PDFPage, value: string, x: number, y: number, size: number, fontSize: number, font: PDFFont, color: ReturnType<typeof rgb>) {
-  for (const [index, chunk] of chunks(value, size).slice(0, 3).entries()) {
+function drawWrapped(page: PDFPage, value: string, x: number, y: number, size: number, fontSize: number, font: PDFFont, color: ReturnType<typeof rgb>, maxLines = 3) {
+  for (const [index, chunk] of chunks(value, size).slice(0, maxLines).entries()) {
     page.drawText(chunk, { x, y: y - index * (fontSize + 4), size: fontSize, font, color });
   }
 }
@@ -145,3 +158,10 @@ function drawWrapped(page: PDFPage, value: string, x: number, y: number, size: n
 function fitText(value: string, max: number) {
   return value.length > max ? `${value.slice(0, max - 1)}...` : value;
 }
+
+function formatDate(value: string) {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
