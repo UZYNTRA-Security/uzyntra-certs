@@ -24,7 +24,7 @@ const bg = rgb(0.055, 0.075, 0.105);
 const text = rgb(0.96, 0.97, 0.98);
 const muted = rgb(0.74, 0.78, 0.84);
 const faint = rgb(0.48, 0.52, 0.58);
-const chunks = (value: string, size: number) => value.match(new RegExp(`.{1,${size}}`, "g")) ?? [value];
+const darkPanel = rgb(0.035, 0.05, 0.075);
 
 export async function renderCertificatePdf(credential: CertificatePdfInput) {
   const pdf = await PDFDocument.create();
@@ -37,31 +37,18 @@ export async function renderCertificatePdf(credential: CertificatePdfInput) {
   drawShell(page);
   if (logo) {
     const image = await pdf.embedPng(logo);
-    page.drawImage(image, { x: 56, y: 463, width: 66, height: 66 });
+    page.drawImage(image, { x: 56, y: 464, width: 68, height: 68 });
   } else {
     drawFallbackLogo(page);
   }
 
-  page.drawText("UZYNTRA CERTS", { x: 134, y: 501, size: 16, font: fonts.body, color: green });
-  page.drawText("by UZYNTRA Security", { x: 135, y: 485, size: 9, font: fonts.body, color: muted });
-  page.drawText("Digital Credential Verification Platform", { x: 135, y: 471, size: 8, font: fonts.body, color: faint });
-  page.drawText("Certificate of Verification", { x: 60, y: 430, size: 38, font: fonts.heading, color: text });
-  page.drawText("This certifies that", { x: 62, y: 398, size: 14, font: fonts.body, color: muted });
-  page.drawText(fitText(credential.holder, 34), { x: 62, y: 356, size: 31, font: fonts.heading, color: text });
-  page.drawText("has earned", { x: 62, y: 326, size: 14, font: fonts.body, color: muted });
-  page.drawText(fitText(credential.title, 40), { x: 62, y: 286, size: 30, font: fonts.heading, color: green });
-  page.drawText(`Issued by ${fitText(credential.issuer, 48)}`, { x: 62, y: 253, size: 12, font: fonts.body, color: text });
-
-  drawMeta(page, fonts, credential);
-  drawQr(page, verifyUrl, 640, 360, 110);
-  drawQrDetails(page, fonts, credential, verifyUrl);
-
+  drawBrandHeader(page, fonts);
+  drawRecognition(page, fonts, credential);
+  drawIssueSummary(page, fonts, credential);
+  drawQr(page, verifyUrl, 714, 455, 62);
+  drawCenteredText(page, "Scan to verify", 745, 438, 8, fonts.body, muted);
+  drawSeal(page, fonts);
   drawSignature(page, fonts, credential);
-  page.drawText("Authorized UZYNTRA Certs Record", { x: 62, y: 101, size: 11, font: fonts.heading, color: muted });
-  page.drawText("Verification URL:", { x: 62, y: 82, size: 9, font: fonts.body, color: faint });
-  drawWrapped(page, verifyUrl, 62, 68, 78, 8.5, fonts.mono, muted, 2);
-  page.drawText("Credential ID:", { x: 62, y: 48, size: 8.5, font: fonts.body, color: faint });
-  page.drawText(fitText(credential.credential_id, 56), { x: 126, y: 48, size: 8.5, font: fonts.mono, color: muted });
 
   return Buffer.from(await pdf.save());
 }
@@ -95,11 +82,12 @@ async function readLogo() {
 
 function drawShell(page: PDFPage) {
   page.drawRectangle({ x: 0, y: 0, width: 842, height: 595, color: bg });
-  page.drawRectangle({ x: 28, y: 28, width: 786, height: 539, borderColor: green, borderWidth: 3 });
-  page.drawRectangle({ x: 42, y: 42, width: 758, height: 511, borderColor: green, borderWidth: 1 });
-  page.drawRectangle({ x: 60, y: 516, width: 192, height: 4, color: green });
-  page.drawRectangle({ x: 62, y: 105, width: 230, height: 1, color: green });
-  page.drawRectangle({ x: 542, y: 105, width: 224, height: 1, color: green });
+  page.drawRectangle({ x: 24, y: 24, width: 794, height: 547, color: darkPanel, borderColor: green, borderWidth: 1.6 });
+  page.drawRectangle({ x: 38, y: 38, width: 766, height: 519, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.7 });
+  page.drawLine({ start: { x: 72, y: 466 }, end: { x: 770, y: 466 }, color: rgb(0.18, 0.34, 0.28), thickness: 0.7 });
+  page.drawLine({ start: { x: 72, y: 145 }, end: { x: 770, y: 145 }, color: rgb(0.18, 0.34, 0.28), thickness: 0.7 });
+  page.drawRectangle({ x: 72, y: 530, width: 185, height: 3, color: green });
+  page.drawRectangle({ x: 585, y: 62, width: 150, height: 2, color: green });
 }
 
 function drawFallbackLogo(page: PDFPage) {
@@ -109,18 +97,8 @@ function drawFallbackLogo(page: PDFPage) {
   page.drawRectangle({ x: 68, y: 486, width: 20, height: 2, color: green });
 }
 
-function drawMeta(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
-  const badge = credential.badges[0];
-  page.drawText(`Credential type: ${credential.credential_type.replaceAll("_", " ")}`, { x: 62, y: 227, size: 10, font: fonts.body, color: muted });
-  page.drawText(`Issue date: ${formatDate(credential.issue_date)}    Expiry date: ${credential.expiry_date ? formatDate(credential.expiry_date) : "No expiry"}`, { x: 62, y: 207, size: 10, font: fonts.body, color: muted });
-  page.drawText("Credential ID:", { x: 62, y: 185, size: 10, font: fonts.body, color: muted });
-  drawWrapped(page, credential.credential_id, 140, 185, 34, 9, fonts.mono, text);
-  page.drawText(`Certificate slug: ${fitText(credential.certificate_slug, 44)}`, { x: 62, y: 145, size: 10, font: fonts.body, color: muted });
-  if (badge) page.drawText(`Badge: ${fitText(badge.name, 48)}${badge.level ? ` / ${fitText(badge.level, 18)}` : ""}`, { x: 62, y: 124, size: 10, font: fonts.body, color: green });
-}
-
 function drawQr(page: PDFPage, value: string, x: number, y: number, size: number) {
-  page.drawRectangle({ x: x - 6, y: y - 6, width: size + 12, height: size + 12, color: rgb(1, 1, 1) });
+  page.drawRectangle({ x: x - 5, y: y - 5, width: size + 10, height: size + 10, color: rgb(1, 1, 1) });
   const qr = QRCode.create(value, { errorCorrectionLevel: "H" });
   const count = qr.modules.size;
   const cell = size / count;
@@ -131,16 +109,42 @@ function drawQr(page: PDFPage, value: string, x: number, y: number, size: number
   }
 }
 
-function drawQrDetails(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput, verifyUrl: string) {
-  page.drawText("SCAN TO VERIFY", { x: 604, y: 337, size: 9, font: fonts.heading, color: green });
-  page.drawText("STATUS", { x: 604, y: 315, size: 7, font: fonts.body, color: faint });
-  page.drawText("VERIFIED", { x: 604, y: 302, size: 10, font: fonts.heading, color: text });
-  page.drawText("ISSUED", { x: 604, y: 281, size: 7, font: fonts.body, color: faint });
-  page.drawText(formatDate(credential.issue_date), { x: 604, y: 268, size: 9, font: fonts.body, color: muted });
-  page.drawText("CREDENTIAL ID", { x: 604, y: 247, size: 7, font: fonts.body, color: faint });
-  drawWrapped(page, credential.credential_id, 604, 235, 27, 7, fonts.mono, text, 2);
-  page.drawText("VERIFY ONLINE", { x: 604, y: 199, size: 7, font: fonts.body, color: faint });
-  drawWrapped(page, verifyUrl, 604, 187, 32, 7, fonts.mono, muted, 2);
+function drawBrandHeader(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>) {
+  page.drawText("UZYNTRA CERTS", { x: 138, y: 505, size: 17, font: fonts.heading, color: green });
+  page.drawText("by UZYNTRA Security", { x: 139, y: 488, size: 9.5, font: fonts.body, color: muted });
+  page.drawText("Digital Credential Verification Platform", { x: 139, y: 474, size: 8.5, font: fonts.body, color: faint });
+}
+
+function drawRecognition(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  drawCenteredText(page, "Certificate of Achievement", 421, 421, 38, fonts.heading, text);
+  drawCenteredText(page, "This certifies that", 421, 383, 14, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.holder, 38), 421, 335, 34, fonts.heading, text);
+  page.drawLine({ start: { x: 218, y: 319 }, end: { x: 624, y: 319 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.7 });
+  drawCenteredText(page, "has successfully earned", 421, 286, 13, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.title, 44), 421, 241, 31, fonts.heading, green);
+}
+
+function drawIssueSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  page.drawText("Issued by:", { x: 116, y: 119, size: 9, font: fonts.body, color: faint });
+  page.drawText(fitText(credential.issuer, 38), { x: 116, y: 101, size: 12, font: fonts.heading, color: text });
+  page.drawText("Issue Date:", { x: 306, y: 119, size: 9, font: fonts.body, color: faint });
+  page.drawText(formatDate(credential.issue_date), { x: 306, y: 101, size: 12, font: fonts.heading, color: text });
+  if (credential.badges[0]) {
+    page.drawText("Recognition:", { x: 116, y: 78, size: 8.5, font: fonts.body, color: faint });
+    page.drawText(fitText(credential.badges[0].name, 34), { x: 116, y: 62, size: 10, font: fonts.body, color: muted });
+  }
+}
+
+function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>) {
+  const cx = 492;
+  const cy = 94;
+  page.drawCircle({ x: cx, y: cy, size: 48, borderColor: green, borderWidth: 2 });
+  page.drawCircle({ x: cx, y: cy, size: 39, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.9 });
+  page.drawCircle({ x: cx, y: cy, size: 24, color: rgb(0.055, 0.12, 0.095), borderColor: green, borderWidth: 0.8 });
+  drawCenteredText(page, "UZYNTRA", cx, cy + 18, 8, fonts.heading, green);
+  drawCenteredText(page, "CERTS", cx, cy + 7, 8, fonts.heading, text);
+  drawCenteredText(page, "VERIFIED", cx, cy - 7, 7.5, fonts.heading, green);
+  drawCenteredText(page, "AUTHORITY", cx, cy - 19, 6, fonts.body, muted);
 }
 
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
@@ -149,22 +153,21 @@ function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts
   const signature = "m.usama";
   const signatureSize = premium ? 58 : 60;
   const signatureWidth = font.widthOfTextAtSize(signature, signatureSize);
-  const centerX = 656;
-  page.drawText(signature, { x: centerX - signatureWidth / 2, y: 137, size: signatureSize, font, color: text });
-  page.drawText("Muhammad Usama", { x: 603, y: 89, size: 11, font: fonts.heading, color: text });
-  page.drawText("Founder & CEO", { x: 620, y: 73, size: 9, font: fonts.body, color: muted });
-  page.drawText(fitText(credential.issuer, 30), { x: 604, y: 58, size: 9, font: fonts.body, color: muted });
-  page.drawText("Authorized Issuing Authority", { x: 576, y: 45, size: 9, font: fonts.heading, color: muted });
-}
-
-function drawWrapped(page: PDFPage, value: string, x: number, y: number, size: number, fontSize: number, font: PDFFont, color: ReturnType<typeof rgb>, maxLines = 3) {
-  for (const [index, chunk] of chunks(value, size).slice(0, maxLines).entries()) {
-    page.drawText(chunk, { x, y: y - index * (fontSize + 4), size: fontSize, font, color });
-  }
+  const centerX = 660;
+  page.drawText(signature, { x: centerX - signatureWidth / 2, y: 135, size: signatureSize, font, color: text });
+  page.drawText("Muhammad Usama", { x: 607, y: 88, size: 11.5, font: fonts.heading, color: text });
+  page.drawText("Founder & CEO", { x: 624, y: 72, size: 9, font: fonts.body, color: muted });
+  page.drawText(fitText(credential.issuer, 30), { x: 608, y: 56, size: 9, font: fonts.body, color: muted });
+  page.drawText("Authorized Certification Authority", { x: 584, y: 42, size: 8.5, font: fonts.heading, color: muted });
 }
 
 function fitText(value: string, max: number) {
   return value.length > max ? `${value.slice(0, max - 1)}...` : value;
+}
+
+function drawCenteredText(page: PDFPage, value: string, centerX: number, y: number, size: number, font: PDFFont, color: ReturnType<typeof rgb>) {
+  const width = font.widthOfTextAtSize(value, size);
+  page.drawText(value, { x: centerX - width / 2, y, size, font, color });
 }
 
 function formatDate(value: string) {
