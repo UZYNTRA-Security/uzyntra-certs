@@ -125,7 +125,6 @@ function drawCourseTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof load
   drawCenteredText(page, "has successfully completed", 421, 270, 12.5, fonts.body, muted);
   drawCenteredText(page, fitText(credential.title, 44), 421, 226, 31, fonts.heading, green);
   drawCourseSummary(page, fonts, credential);
-  drawSeal(page, fonts, 502, 98, 32);
 }
 
 function drawRecognitionTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
@@ -138,7 +137,6 @@ function drawRecognitionTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof
   drawCenteredText(page, fitText(credential.title, 44), 421, 234, 29, fonts.heading, green);
   drawCenteredText(page, "In recognition of valuable security research and contribution to improving digital security.", 421, 203, 10, fonts.body, muted);
   drawRecognitionSummary(page, fonts, credential);
-  drawSeal(page, fonts, 502, 98, 32);
 }
 
 function drawCourseSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
@@ -153,17 +151,6 @@ function drawRecognitionSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof 
   page.drawText(fitText(credential.issuer, 38), { x: 116, y: 101, size: 11, font: fonts.heading, color: text });
   page.drawText("Presented on:", { x: 306, y: 119, size: 8.5, font: fonts.body, color: faint });
   page.drawText(formatDate(credential.issue_date), { x: 306, y: 101, size: 11, font: fonts.heading, color: text });
-}
-
-function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, cx: number, cy: number, radius: number) {
-  page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.4 });
-  page.drawCircle({ x: cx, y: cy, size: radius - 8, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.7 });
-  page.drawCircle({ x: cx, y: cy, size: radius - 19, borderColor: green, borderWidth: 0.7 });
-  page.drawLine({ start: { x: cx - 9, y: cy - 1 }, end: { x: cx - 3, y: cy - 8 }, color: green, thickness: 1.4 });
-  page.drawLine({ start: { x: cx - 3, y: cy - 8 }, end: { x: cx + 12, y: cy + 8 }, color: green, thickness: 1.4 });
-  drawCenteredText(page, "UZYNTRA CERTS", cx, cy + 20, 4.7, fonts.heading, green);
-  drawCenteredText(page, "VERIFIED", cx, cy - 18, 5.7, fonts.heading, text);
-  drawCenteredText(page, "CERTIFICATION AUTHORITY", cx, cy - 26, 3.6, fonts.body, muted);
 }
 
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
