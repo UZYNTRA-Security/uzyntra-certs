@@ -42,12 +42,14 @@ export async function renderCertificatePdf(credential: CertificatePdfInput) {
     drawFallbackLogo(page);
   }
 
-  drawBrandHeader(page, fonts);
-  drawRecognition(page, fonts, credential);
-  drawIssueSummary(page, fonts, credential);
+  if (isRecognitionCertificate(credential)) {
+    drawRecognitionTemplate(page, fonts, credential);
+  } else {
+    drawCourseTemplate(page, fonts, credential);
+  }
+
   drawQr(page, verifyUrl, 714, 455, 62);
   drawCenteredText(page, "Scan to verify", 745, 438, 8, fonts.body, muted);
-  drawSeal(page, fonts);
   drawSignature(page, fonts, credential);
 
   return Buffer.from(await pdf.save());
@@ -109,30 +111,48 @@ function drawQr(page: PDFPage, value: string, x: number, y: number, size: number
   }
 }
 
-function drawBrandHeader(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>) {
+function drawBrandHeader(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, subtitle = "Digital Credential Verification Platform") {
   page.drawText("UZYNTRA CERTS", { x: 138, y: 505, size: 17, font: fonts.heading, color: green });
   page.drawText("by UZYNTRA Security", { x: 139, y: 488, size: 9.5, font: fonts.body, color: muted });
-  page.drawText("Digital Credential Verification Platform", { x: 139, y: 474, size: 8.5, font: fonts.body, color: faint });
+  page.drawText(subtitle, { x: 139, y: 474, size: 8.5, font: fonts.body, color: faint });
 }
 
-function drawRecognition(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
-  drawCenteredText(page, "Certificate of Achievement", 421, 421, 38, fonts.heading, text);
-  drawCenteredText(page, "This certifies that", 421, 383, 14, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.holder, 38), 421, 335, 34, fonts.heading, text);
+function drawCourseTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  drawBrandHeader(page, fonts, "Professional Training & Certification");
+  drawCenteredText(page, "Certificate of Completion", 421, 420, 38, fonts.heading, text);
+  drawCenteredText(page, "This certifies that", 421, 381, 14, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.holder, 38), 421, 331, 35, fonts.heading, text);
   page.drawLine({ start: { x: 218, y: 319 }, end: { x: 624, y: 319 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.7 });
-  drawCenteredText(page, "has successfully earned", 421, 286, 13, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.title, 44), 421, 241, 31, fonts.heading, green);
+  drawCenteredText(page, "has successfully completed", 421, 284, 13, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.title, 44), 421, 236, 31, fonts.heading, green);
+  drawCourseSummary(page, fonts, credential);
 }
 
-function drawIssueSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+function drawRecognitionTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  drawBrandHeader(page, fonts, "Recognition Award");
+  drawCenteredText(page, "Recognition Award", 421, 420, 38, fonts.heading, text);
+  drawCenteredText(page, "This recognition is presented to", 421, 382, 14, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.holder, 38), 421, 334, 35, fonts.heading, text);
+  page.drawLine({ start: { x: 216, y: 318 }, end: { x: 626, y: 318 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.7 });
+  drawCenteredText(page, "for", 421, 286, 13, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.title, 44), 421, 242, 30, fonts.heading, green);
+  drawCenteredText(page, "In recognition of valuable security research and contribution to improving digital security.", 421, 206, 10.5, fonts.body, muted);
+  drawRecognitionSummary(page, fonts, credential);
+  drawSeal(page, fonts);
+}
+
+function drawCourseSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
   page.drawText("Issued by:", { x: 116, y: 119, size: 9, font: fonts.body, color: faint });
   page.drawText(fitText(credential.issuer, 38), { x: 116, y: 101, size: 12, font: fonts.heading, color: text });
-  page.drawText("Issue Date:", { x: 306, y: 119, size: 9, font: fonts.body, color: faint });
+  page.drawText("Completion Date:", { x: 306, y: 119, size: 9, font: fonts.body, color: faint });
   page.drawText(formatDate(credential.issue_date), { x: 306, y: 101, size: 12, font: fonts.heading, color: text });
-  if (credential.badges[0]) {
-    page.drawText("Recognition:", { x: 116, y: 78, size: 8.5, font: fonts.body, color: faint });
-    page.drawText(fitText(credential.badges[0].name, 34), { x: 116, y: 62, size: 10, font: fonts.body, color: muted });
-  }
+}
+
+function drawRecognitionSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  page.drawText("Presented by:", { x: 116, y: 119, size: 9, font: fonts.body, color: faint });
+  page.drawText(fitText(credential.issuer, 38), { x: 116, y: 101, size: 12, font: fonts.heading, color: text });
+  page.drawText("Presented on:", { x: 306, y: 119, size: 9, font: fonts.body, color: faint });
+  page.drawText(formatDate(credential.issue_date), { x: 306, y: 101, size: 12, font: fonts.heading, color: text });
 }
 
 function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>) {
@@ -174,5 +194,20 @@ function formatDate(value: string) {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function isRecognitionCertificate(credential: CertificatePdfInput) {
+  const type = credential.credential_type.toUpperCase();
+  const category = credential.category.toUpperCase();
+  return (
+    type === "RECOGNITION_CERTIFICATE" ||
+    type.includes("RECOGNITION") ||
+    type.includes("APPRECIATION") ||
+    type.includes("AWARD") ||
+    category === "BUG_BOUNTY" ||
+    category === "CONTRIBUTION" ||
+    category === "APPRECIATION" ||
+    category === "APPRECIATIONS"
+  );
 }
 
