@@ -48,8 +48,8 @@ export async function renderCertificatePdf(credential: CertificatePdfInput) {
     drawCourseTemplate(page, fonts, credential);
   }
 
-  drawQr(page, verifyUrl, 728, 470, 48);
-  drawCenteredText(page, "Scan to verify", 752, 454, 7.5, fonts.body, muted);
+  drawQr(page, verifyUrl, 730, 472, 46);
+  drawCenteredText(page, "Scan to verify", 753, 451, 6.8, fonts.body, muted);
   drawSignature(page, fonts, credential);
 
   return Buffer.from(await pdf.save());
@@ -86,9 +86,9 @@ function drawShell(page: PDFPage) {
   page.drawRectangle({ x: 0, y: 0, width: 842, height: 595, color: bg });
   page.drawRectangle({ x: 24, y: 24, width: 794, height: 547, color: darkPanel, borderColor: green, borderWidth: 1.6 });
   page.drawRectangle({ x: 38, y: 38, width: 766, height: 519, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.7 });
-  page.drawLine({ start: { x: 72, y: 458 }, end: { x: 770, y: 458 }, color: rgb(0.18, 0.34, 0.28), thickness: 0.7 });
-  page.drawLine({ start: { x: 86, y: 150 }, end: { x: 756, y: 150 }, color: rgb(0.18, 0.34, 0.28), thickness: 0.7 });
-  page.drawRectangle({ x: 72, y: 530, width: 165, height: 3, color: green });
+  page.drawLine({ start: { x: 74, y: 454 }, end: { x: 768, y: 454 }, color: rgb(0.14, 0.3, 0.24), thickness: 0.55 });
+  page.drawLine({ start: { x: 92, y: 156 }, end: { x: 750, y: 156 }, color: rgb(0.14, 0.3, 0.24), thickness: 0.55 });
+  page.drawRectangle({ x: 72, y: 530, width: 165, height: 2.2, color: green });
 }
 
 function drawFallbackLogo(page: PDFPage) {
@@ -118,51 +118,51 @@ function drawBrandHeader(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFon
 
 function drawCourseTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
   drawBrandHeader(page, fonts, "Professional Training & Certification");
-  drawCenteredText(page, "Certificate of Completion", 421, 404, 36, fonts.heading, text);
-  drawCenteredText(page, "This certifies that", 421, 365, 13.5, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.holder, 38), 421, 318, 36, fonts.heading, text);
-  page.drawLine({ start: { x: 238, y: 303 }, end: { x: 604, y: 303 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.7 });
-  drawCenteredText(page, "has successfully completed", 421, 266, 13, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.title, 44), 421, 220, 33, fonts.heading, green);
+  drawCenteredText(page, "Certificate of Completion", 421, 402, 35, fonts.heading, text);
+  drawCenteredText(page, "This certifies that", 421, 364, 13, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.holder, 38), 421, 319, 34, fonts.heading, text);
+  page.drawLine({ start: { x: 246, y: 305 }, end: { x: 596, y: 305 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.6 });
+  drawCenteredText(page, "has successfully completed", 421, 270, 12.5, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.title, 44), 421, 226, 31, fonts.heading, green);
   drawCourseSummary(page, fonts, credential);
-  drawSeal(page, fonts, 500, 88, 38);
+  drawSeal(page, fonts, 502, 98, 32);
 }
 
 function drawRecognitionTemplate(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
   drawBrandHeader(page, fonts, "Recognition Award");
-  drawCenteredText(page, "Recognition Award", 421, 404, 36, fonts.heading, text);
-  drawCenteredText(page, "This recognition is presented to", 421, 366, 13.5, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.holder, 38), 421, 320, 36, fonts.heading, text);
-  page.drawLine({ start: { x: 236, y: 305 }, end: { x: 606, y: 305 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.7 });
-  drawCenteredText(page, "for", 421, 270, 13, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.title, 44), 421, 228, 31, fonts.heading, green);
-  drawCenteredText(page, "In recognition of valuable security research and contribution to improving digital security.", 421, 194, 10.5, fonts.body, muted);
+  drawCenteredText(page, "Recognition Award", 421, 402, 35, fonts.heading, text);
+  drawCenteredText(page, "This recognition is presented to", 421, 365, 13, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.holder, 38), 421, 321, 34, fonts.heading, text);
+  page.drawLine({ start: { x: 246, y: 307 }, end: { x: 596, y: 307 }, color: rgb(0.22, 0.52, 0.38), thickness: 0.6 });
+  drawCenteredText(page, "for", 421, 274, 12.5, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.title, 44), 421, 234, 29, fonts.heading, green);
+  drawCenteredText(page, "In recognition of valuable security research and contribution to improving digital security.", 421, 203, 10, fonts.body, muted);
   drawRecognitionSummary(page, fonts, credential);
-  drawSeal(page, fonts, 500, 88, 38);
+  drawSeal(page, fonts, 502, 98, 32);
 }
 
 function drawCourseSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
-  page.drawText("Issued by:", { x: 116, y: 116, size: 9, font: fonts.body, color: faint });
-  page.drawText(fitText(credential.issuer, 38), { x: 116, y: 96, size: 12, font: fonts.heading, color: text });
-  page.drawText("Completion Date:", { x: 306, y: 116, size: 9, font: fonts.body, color: faint });
-  page.drawText(formatDate(credential.issue_date), { x: 306, y: 96, size: 12, font: fonts.heading, color: text });
+  page.drawText("Issued by:", { x: 116, y: 119, size: 8.5, font: fonts.body, color: faint });
+  page.drawText(fitText(credential.issuer, 38), { x: 116, y: 101, size: 11, font: fonts.heading, color: text });
+  page.drawText("Completion Date:", { x: 306, y: 119, size: 8.5, font: fonts.body, color: faint });
+  page.drawText(formatDate(credential.issue_date), { x: 306, y: 101, size: 11, font: fonts.heading, color: text });
 }
 
 function drawRecognitionSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
-  page.drawText("Presented by:", { x: 116, y: 116, size: 9, font: fonts.body, color: faint });
-  page.drawText(fitText(credential.issuer, 38), { x: 116, y: 96, size: 12, font: fonts.heading, color: text });
-  page.drawText("Presented on:", { x: 306, y: 116, size: 9, font: fonts.body, color: faint });
-  page.drawText(formatDate(credential.issue_date), { x: 306, y: 96, size: 12, font: fonts.heading, color: text });
+  page.drawText("Presented by:", { x: 116, y: 119, size: 8.5, font: fonts.body, color: faint });
+  page.drawText(fitText(credential.issuer, 38), { x: 116, y: 101, size: 11, font: fonts.heading, color: text });
+  page.drawText("Presented on:", { x: 306, y: 119, size: 8.5, font: fonts.body, color: faint });
+  page.drawText(formatDate(credential.issue_date), { x: 306, y: 101, size: 11, font: fonts.heading, color: text });
 }
 
 function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, cx: number, cy: number, radius: number) {
   page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.6 });
   page.drawCircle({ x: cx, y: cy, size: radius - 8, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.8 });
   page.drawCircle({ x: cx, y: cy, size: radius - 20, color: rgb(0.055, 0.12, 0.095), borderColor: green, borderWidth: 0.7 });
-  drawCenteredText(page, "UZYNTRA", cx, cy + 14, 7, fonts.heading, green);
-  drawCenteredText(page, "CERTS", cx, cy + 4, 7, fonts.heading, text);
-  drawCenteredText(page, "VERIFIED", cx, cy - 8, 6.5, fonts.heading, green);
-  drawCenteredText(page, "AUTHORITY", cx, cy - 18, 5.5, fonts.body, muted);
+  drawCenteredText(page, "UZYNTRA", cx, cy + 12, 6.2, fonts.heading, green);
+  drawCenteredText(page, "CERTS", cx, cy + 3, 6.5, fonts.heading, text);
+  drawCenteredText(page, "VERIFIED", cx, cy - 8, 5.8, fonts.heading, green);
+  drawCenteredText(page, "AUTHORITY", cx, cy - 17, 4.8, fonts.body, muted);
 }
 
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
@@ -171,12 +171,12 @@ function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts
   const signatureSize = 42;
   const signatureWidth = font.widthOfTextAtSize(signature, signatureSize);
   const centerX = 660;
-  page.drawText(signature, { x: centerX - signatureWidth / 2, y: 119, size: signatureSize, font, color: text });
-  page.drawLine({ start: { x: 590, y: 102 }, end: { x: 730, y: 102 }, color: green, thickness: 1.1 });
-  drawCenteredText(page, "Muhammad Usama", centerX, 84, 11.5, fonts.heading, text);
-  drawCenteredText(page, "Founder & CEO", centerX, 68, 9, fonts.body, muted);
-  drawCenteredText(page, fitText(credential.issuer, 30), centerX, 53, 9, fonts.body, muted);
-  drawCenteredText(page, "Authorized Certification Authority", centerX, 40, 8.5, fonts.heading, muted);
+  page.drawText(signature, { x: centerX - signatureWidth / 2, y: 127, size: signatureSize, font, color: text });
+  page.drawLine({ start: { x: 594, y: 112 }, end: { x: 726, y: 112 }, color: green, thickness: 1 });
+  drawCenteredText(page, "Muhammad Usama", centerX, 94, 10.8, fonts.heading, text);
+  drawCenteredText(page, "Founder & CEO", centerX, 80, 8.2, fonts.body, muted);
+  drawCenteredText(page, fitText(credential.issuer, 30), centerX, 67, 8.2, fonts.body, muted);
+  drawCenteredText(page, "Authorized Certification Authority", centerX, 55, 7.7, fonts.heading, muted);
 }
 
 function fitText(value: string, max: number) {
