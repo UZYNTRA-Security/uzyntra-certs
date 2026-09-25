@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cre
   if (!credential) return new Response(null, { status: 404 });
   const objectPath = `${credential.credential_id}/certificate.pdf`;
   const admin = createAdminClient();
-  const pdf = renderCertificatePdf(credential);
+  const pdf = await renderCertificatePdf(credential);
   await admin.storage.from("certificates").upload(objectPath, pdf, { contentType: "application/pdf", cacheControl: "3600", upsert: true });
   await admin.from("credentials").update({ certificate_file_url: `certificates/${objectPath}` }).eq("id", credential.id);
   return new NextResponse(new Uint8Array(pdf), { headers: headers(credential.credential_id) });

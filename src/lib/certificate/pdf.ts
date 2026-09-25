@@ -1,5 +1,9 @@
-import { getSiteUrl } from "@/lib/metadata";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import fontkit from "@pdf-lib/fontkit";
+import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
+import { getSiteUrl } from "@/lib/metadata";
 
 type CertificatePdfInput = {
   credential_id: string;
@@ -14,88 +18,130 @@ type CertificatePdfInput = {
   badges: Array<{ name: string; level: string | null }>;
 };
 
-const esc = (value: string) => value.replaceAll("\\", "\\\\").replaceAll("(", "\\(").replaceAll(")", "\\)");
-const line = (value: string, max = 72) => value.length > max ? `${value.slice(0, max - 1)}...` : value;
+const pageSize: [number, number] = [842, 595];
+const green = rgb(0.4, 0.88, 0.62);
+const bg = rgb(0.055, 0.075, 0.105);
+const text = rgb(0.96, 0.97, 0.98);
+const muted = rgb(0.74, 0.78, 0.84);
+const faint = rgb(0.48, 0.52, 0.58);
 const chunks = (value: string, size: number) => value.match(new RegExp(`.{1,${size}}`, "g")) ?? [value];
 
-export function renderCertificatePdf(credential: CertificatePdfInput) {
+export async function renderCertificatePdf(credential: CertificatePdfInput) {
+  const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const page = pdf.addPage(pageSize);
+  const fonts = await loadFonts(pdf);
   const verifyUrl = new URL(`/v/${credential.credential_id}`, getSiteUrl()).toString();
   const certificateUrl = new URL(`/certificate/${credential.credential_id}`, getSiteUrl()).toString();
-  const badge = credential.badges[0];
-  const credentialLines = chunks(credential.credential_id, 34);
-  const certificateLines = chunks(certificateUrl, 68);
-  const qr = pdfQr(verifyUrl, 620, 326, 124);
-  const content = [
-    "q",
-    "0.055 0.075 0.105 rg 0 0 842 595 re f",
-    "0.40 0.88 0.62 RG 3 w 28 28 786 539 re S",
-    "0.40 0.88 0.62 RG 1 w 42 42 758 511 re S",
-    "0.40 0.88 0.62 RG 2 w 60 478 34 42 re S",
-    "0.40 0.88 0.62 RG 2 w 68 499 8 8 re S 80 499 8 8 re S 68 486 20 2 re S",
-    "0.40 0.88 0.62 rg 60 515 192 4 re f",
-    "BT /F1 15 Tf 0.40 0.88 0.62 rg 108 492 Td (UZYNTRA CERTS) Tj ET",
-    "BT /F1 8 Tf 0.74 0.78 0.84 rg 109 480 Td (by UZYNTRA Security) Tj ET",
-    "BT /F2 36 Tf 0.96 0.97 0.98 rg 60 438 Td (Certificate of Verification) Tj ET",
-    `BT /F1 14 Tf 0.74 0.78 0.84 rg 62 404 Td (This certifies that) Tj ET`,
-    `BT /F2 30 Tf 0.96 0.97 0.98 rg 62 362 Td (${esc(line(credential.holder, 36))}) Tj ET`,
-    `BT /F1 14 Tf 0.74 0.78 0.84 rg 62 331 Td (has earned) Tj ET`,
-    `BT /F2 24 Tf 0.40 0.88 0.62 rg 62 294 Td (${esc(line(credential.title, 45))}) Tj ET`,
-    `BT /F1 12 Tf 0.82 0.85 0.9 rg 62 263 Td (Issued by ${esc(line(credential.issuer, 48))}) Tj ET`,
-    `BT /F1 10 Tf 0.78 0.81 0.86 rg 62 236 Td (Credential type: ${esc(credential.credential_type.replaceAll("_", " "))}) Tj ET`,
-    `BT /F1 10 Tf 0.78 0.81 0.86 rg 62 216 Td (Issue date: ${esc(credential.issue_date)}${credential.expiry_date ? `    Expiry date: ${esc(credential.expiry_date)}` : "    Expiry date: No expiry"}) Tj ET`,
-    "BT /F1 10 Tf 0.78 0.81 0.86 rg 62 194 Td (Credential ID:) Tj ET",
-    ...credentialLines.map((value, index) => `BT /F1 9 Tf 0.86 0.89 0.94 rg 140 ${194 - index * 13} Td (${esc(value)}) Tj ET`),
-    `BT /F1 10 Tf 0.78 0.81 0.86 rg 62 154 Td (Certificate slug: ${esc(line(credential.certificate_slug, 44))}) Tj ET`,
-    badge ? `BT /F1 10 Tf 0.40 0.88 0.62 rg 62 133 Td (Badge: ${esc(line(badge.name, 48))}${badge.level ? ` / ${esc(line(badge.level, 18))}` : ""}) Tj ET` : "",
-    "1 1 1 rg 614 320 136 136 re f",
-    qr,
-    "BT /F1 10 Tf 0.74 0.78 0.84 rg 596 300 Td (Scan to verify certificate) Tj ET",
-    `BT /F1 8 Tf 0.78 0.81 0.86 rg 570 282 Td (${esc(line(verifyUrl, 48))}) Tj ET`,
-    "0.40 0.88 0.62 RG 1 w 62 86 230 1 re S 552 86 204 1 re S",
-    "BT /F1 10 Tf 0.74 0.78 0.84 rg 62 67 Td (Authorized UZYNTRA Certs Record) Tj ET",
-    "BT /F3 30 Tf 0.96 0.97 0.98 rg 575 108 Td (m.usama) Tj ET",
-    "BT /F1 10 Tf 0.74 0.78 0.84 rg 566 67 Td (Authorized Signature) Tj ET",
-    ...certificateLines.slice(0, 2).map((value, index) => `BT /F1 8 Tf 0.55 0.59 0.64 rg 62 ${45 - index * 11} Td (${index === 0 ? "View online: " : ""}${esc(value)}) Tj ET`),
-    "Q",
-  ].filter(Boolean).join("\n");
+  const logo = await readLogo();
 
-  return buildPdf(content);
+  drawShell(page);
+  if (logo) {
+    const image = await pdf.embedPng(logo);
+    page.drawImage(image, { x: 58, y: 468, width: 52, height: 52 });
+  } else {
+    drawFallbackLogo(page);
+  }
+
+  page.drawText("UZYNTRA CERTS", { x: 122, y: 496, size: 15, font: fonts.body, color: green });
+  page.drawText("by UZYNTRA Security", { x: 123, y: 482, size: 8, font: fonts.body, color: muted });
+  page.drawText("Certificate of Verification", { x: 60, y: 430, size: 38, font: fonts.heading, color: text });
+  page.drawText("This certifies that", { x: 62, y: 398, size: 14, font: fonts.body, color: muted });
+  page.drawText(fitText(credential.holder, 34), { x: 62, y: 356, size: 31, font: fonts.heading, color: text });
+  page.drawText("has earned", { x: 62, y: 326, size: 14, font: fonts.body, color: muted });
+  page.drawText(fitText(credential.title, 44), { x: 62, y: 288, size: 25, font: fonts.heading, color: green });
+  page.drawText(`Issued by ${fitText(credential.issuer, 48)}`, { x: 62, y: 258, size: 12, font: fonts.body, color: text });
+
+  drawMeta(page, fonts, credential);
+  drawQr(page, verifyUrl, 618, 323, 132);
+  page.drawText("Scan to verify certificate", { x: 598, y: 300, size: 10, font: fonts.body, color: muted });
+  page.drawText(fitText(verifyUrl, 50), { x: 565, y: 281, size: 8, font: fonts.mono, color: muted });
+
+  drawSignature(page, fonts, credential);
+  page.drawText("Authorized UZYNTRA Certs Record", { x: 62, y: 68, size: 10, font: fonts.body, color: muted });
+  drawWrapped(page, `View online: ${certificateUrl}`, 62, 46, 68, 8, fonts.mono, faint);
+
+  return Buffer.from(await pdf.save());
 }
 
-function pdfQr(value: string, x: number, y: number, size: number) {
+async function loadFonts(pdf: PDFDocument) {
+  const [body, heading, mono] = await Promise.all([
+    pdf.embedFont(StandardFonts.Helvetica),
+    pdf.embedFont(StandardFonts.HelveticaBold),
+    pdf.embedFont(StandardFonts.Courier),
+  ]);
+  const [bastliga, allura, centralwell] = await Promise.all([
+    embedOptionalFont(pdf, "Bastliga One.ttf"),
+    embedOptionalFont(pdf, "Allura-Regular.ttf"),
+    embedOptionalFont(pdf, "Centralwell.ttf"),
+  ]);
+  return { body, heading, mono, bastliga: bastliga ?? allura ?? body, allura: allura ?? bastliga ?? body, centralwell: centralwell ?? bastliga ?? body };
+}
+
+async function embedOptionalFont(pdf: PDFDocument, filename: string) {
+  const data = await readFont(filename);
+  return data ? pdf.embedFont(data) : null;
+}
+
+async function readFont(filename: string) {
+  try { return await readFile(path.join(process.cwd(), "public", "fonts", filename)); } catch { return null; }
+}
+
+async function readLogo() {
+  try { return await readFile(path.join(process.cwd(), "public", "logo", "uzyntra-pdf-logo-dark.png")); } catch { return null; }
+}
+
+function drawShell(page: PDFPage) {
+  page.drawRectangle({ x: 0, y: 0, width: 842, height: 595, color: bg });
+  page.drawRectangle({ x: 28, y: 28, width: 786, height: 539, borderColor: green, borderWidth: 3 });
+  page.drawRectangle({ x: 42, y: 42, width: 758, height: 511, borderColor: green, borderWidth: 1 });
+  page.drawRectangle({ x: 60, y: 516, width: 192, height: 4, color: green });
+  page.drawRectangle({ x: 62, y: 86, width: 230, height: 1, color: green });
+  page.drawRectangle({ x: 552, y: 86, width: 204, height: 1, color: green });
+}
+
+function drawFallbackLogo(page: PDFPage) {
+  page.drawRectangle({ x: 60, y: 478, width: 34, height: 42, borderColor: green, borderWidth: 2 });
+  page.drawRectangle({ x: 68, y: 499, width: 8, height: 8, borderColor: green, borderWidth: 2 });
+  page.drawRectangle({ x: 80, y: 499, width: 8, height: 8, borderColor: green, borderWidth: 2 });
+  page.drawRectangle({ x: 68, y: 486, width: 20, height: 2, color: green });
+}
+
+function drawMeta(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  const badge = credential.badges[0];
+  page.drawText(`Credential type: ${credential.credential_type.replaceAll("_", " ")}`, { x: 62, y: 232, size: 10, font: fonts.body, color: muted });
+  page.drawText(`Issue date: ${credential.issue_date}    Expiry date: ${credential.expiry_date ?? "No expiry"}`, { x: 62, y: 212, size: 10, font: fonts.body, color: muted });
+  page.drawText("Credential ID:", { x: 62, y: 190, size: 10, font: fonts.body, color: muted });
+  drawWrapped(page, credential.credential_id, 140, 190, 34, 9, fonts.mono, text);
+  page.drawText(`Certificate slug: ${fitText(credential.certificate_slug, 44)}`, { x: 62, y: 150, size: 10, font: fonts.body, color: muted });
+  if (badge) page.drawText(`Badge: ${fitText(badge.name, 48)}${badge.level ? ` / ${fitText(badge.level, 18)}` : ""}`, { x: 62, y: 129, size: 10, font: fonts.body, color: green });
+}
+
+function drawQr(page: PDFPage, value: string, x: number, y: number, size: number) {
+  page.drawRectangle({ x: x - 6, y: y - 6, width: size + 12, height: size + 12, color: rgb(1, 1, 1) });
   const qr = QRCode.create(value, { errorCorrectionLevel: "H" });
   const count = qr.modules.size;
   const cell = size / count;
-  const commands = [`0.055 0.075 0.105 rg`];
   for (let row = 0; row < count; row++) {
     for (let col = 0; col < count; col++) {
-      if (qr.modules.get(row, col)) {
-        commands.push(`${(x + col * cell).toFixed(2)} ${(y + size - (row + 1) * cell).toFixed(2)} ${cell.toFixed(2)} ${cell.toFixed(2)} re f`);
-      }
+      if (qr.modules.get(row, col)) page.drawRectangle({ x: x + col * cell, y: y + size - (row + 1) * cell, width: cell, height: cell, color: bg });
     }
   }
-  return commands.join("\n");
 }
 
-function buildPdf(content: string) {
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /ZapfChancery-MediumItalic >>",
-    `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}\nendstream`,
-  ];
-  let pdf = "%PDF-1.4\n";
-  const offsets = [0];
-  for (let index = 0; index < objects.length; index++) {
-    offsets.push(Buffer.byteLength(pdf));
-    pdf += `${index + 1} 0 obj\n${objects[index]}\nendobj\n`;
+function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
+  const premium = credential.credential_type === "APPRECIATION" || credential.credential_type === "ACHIEVEMENT" || credential.credential_type === "BUG_BOUNTY";
+  const font = premium ? fonts.centralwell : fonts.bastliga;
+  page.drawText("m.usama", { x: 574, y: 104, size: 35, font, color: text });
+  page.drawText("Authorized Signature", { x: 566, y: 68, size: 10, font: fonts.body, color: muted });
+}
+
+function drawWrapped(page: PDFPage, value: string, x: number, y: number, size: number, fontSize: number, font: PDFFont, color: ReturnType<typeof rgb>) {
+  for (const [index, chunk] of chunks(value, size).slice(0, 3).entries()) {
+    page.drawText(chunk, { x, y: y - index * (fontSize + 4), size: fontSize, font, color });
   }
-  const xref = Buffer.byteLength(pdf);
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (const offset of offsets.slice(1)) pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return Buffer.from(pdf);
+}
+
+function fitText(value: string, max: number) {
+  return value.length > max ? `${value.slice(0, max - 1)}...` : value;
 }
