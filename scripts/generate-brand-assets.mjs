@@ -1,0 +1,3 @@
+import sharp from "sharp";
+import {readFile,writeFile} from "node:fs/promises";
+const source=new URL("../src/app/icon.svg",import.meta.url);const png=await sharp(await readFile(source)).resize(180,180).png().toBuffer();await writeFile(new URL("../public/apple-icon.png",import.meta.url),png);const small=await sharp(await readFile(source)).resize(32,32).png().toBuffer();const header=Buffer.alloc(22);header.writeUInt16LE(0,0);header.writeUInt16LE(1,2);header.writeUInt16LE(1,4);header.writeUInt8(32,6);header.writeUInt8(32,7);header.writeUInt16LE(1,10);header.writeUInt16LE(32,12);header.writeUInt32LE(small.length,14);header.writeUInt32LE(22,18);await writeFile(new URL("../public/favicon.ico",import.meta.url),Buffer.concat([header,small]));

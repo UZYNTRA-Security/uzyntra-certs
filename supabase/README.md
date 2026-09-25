@@ -9,6 +9,8 @@ Apply these migrations only to the dedicated UZYNTRA Certs project. No fabricate
 3. `20260924010000_auth_registration_state.sql`: service-only new/unverified/verified lookup.
 4. `20260924020000_credential_foundation.sql`: credential schema, RLS, profile provisioning, public projection, logging and rate limits.
 5. `20260924030000_candidate_identity.sql`: candidate profile fields and visibility, safe public profile projection, private avatar bucket and owner-scoped Storage policies.
+6. `20260924040000_credential_lifecycle.sql`: issuer roles, draft/review/issue/revoke lifecycle, immutable events, enhanced verification and private badge artwork.
+7. `20260924040100_exact_credential_statuses.sql`: removes legacy status labels after converting existing records to the five-state lifecycle.
 
 For a linked project:
 
@@ -33,8 +35,12 @@ With Docker, `npm run db:start` starts the local stack. `npm run db:reset` reapp
 | `credential_badges` | Composite-key relationship | None | Read relationships for own credentials |
 | `verification_logs` | Minimal public verification audit | None | None |
 | `verification_rate_limits` | Atomic shared rate limit | None | None |
+| `credential_issuers` | Explicit issuer staff memberships and roles | None | Read own membership |
+| `credential_events` | Immutable lifecycle audit history | None | Issuer staff read through RLS |
 
 Every table has RLS enabled. Only trusted operators/service-role operations can issue, publish, revoke or link credentials and badges. A user cannot update their profile ID or grant themselves credential ownership. `create_auth_profile()` provisions an empty profile for existing and new Auth accounts; it does not copy untrusted metadata into public records. It runs with a fixed empty search path and cannot be called by anonymous/authenticated roles. Timestamp triggers update `updated_at` automatically.
+
+Credential roles are explicit: `ISSUER` creates drafts and submits them, `REVIEWER` can issue/revoke, and `ADMIN` can administer lifecycle records. A candidate sees no draft or pending record. Issued, revoked and expired records remain visible to their owner and at their unpredictable public verification URL. Every lifecycle change inserts an append-only `credential_events` record; update/delete attempts are rejected by a trigger.
 
 Profiles contain `full_name`, unique lowercase `username`, an internal validated `avatar_url`, headline, bio, country, LinkedIn/GitHub/portfolio URLs, visibility and timestamps. URL fields require HTTPS and bounded lengths. Profiles default to private. Public profiles require a full name and username and are exposed only through the service-only `get_public_profile()` projection; no profile listing or account email is public.
 

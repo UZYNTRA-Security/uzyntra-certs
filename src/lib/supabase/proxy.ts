@@ -6,7 +6,7 @@ import { verifiedUser } from "@/lib/auth/service";
 
 export async function updateSession(request: NextRequest, requestHeaders: Headers) {
   let response = NextResponse.next({ request: { headers: requestHeaders } });
-  const protectedRoute = request.nextUrl.pathname === "/dashboard" || request.nextUrl.pathname.startsWith("/dashboard/");
+  const protectedRoute = request.nextUrl.pathname === "/dashboard" || request.nextUrl.pathname.startsWith("/dashboard/") || request.nextUrl.pathname === "/issuer" || request.nextUrl.pathname.startsWith("/issuer/");
   const loginRedirect = () => NextResponse.redirect(new URL("/login", request.url), 307);
   if (!hasSupabaseConfig()) return protectedRoute ? loginRedirect() : response;
 

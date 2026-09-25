@@ -27,8 +27,8 @@ test("credential migrations enforce ownership, private publication, exact lookup
     for (const file of (await readdir(migrations)).filter((f) => f.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(file, migrations), "utf8"));
     await db.exec(`insert into auth.users values ('${bob}', 'bob@example.com', now());`);
     assert.equal((await db.query("select * from public.profiles")).rows.length, 2, "backfill and new-user trigger");
-    await db.exec(`insert into public.credentials(credential_id, owner_id, credential_type, title, issue_date, public_holder_name, certificate_file_url)
-      values ('${id}', '${alice}', 'COURSE_CERTIFICATE', 'Security Engineering', current_date, 'Alice Approved', 'private/secret.pdf');
+    await db.exec(`insert into public.credentials(credential_id, owner_id, credential_type, category, title, issue_date, public_holder_name, certificate_file_url)
+      values ('${id}', '${alice}', 'COURSE_CERTIFICATE', 'COURSE', 'Security Engineering', current_date, 'Alice Approved', 'private/secret.pdf');
       insert into public.badges(name,slug,category,icon_url) values ('Security','security','SECURITY','/badges/cybersecurity.png');
       insert into public.credential_badges select c.id,b.id from public.credentials c cross join public.badges b;`);
     for (const role of ["anon", "authenticated"]) {
@@ -45,8 +45,8 @@ test("credential migrations enforce ownership, private publication, exact lookup
     await db.exec("reset role; set role authenticated");
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [alice]);
     assert.equal((await db.query("select * from public.profiles")).rows.length, 1);
-    assert.equal((await db.query("select * from public.credentials")).rows.length, 1);
-    assert.equal((await db.query("select * from public.credential_badges")).rows.length, 1);
+    assert.equal((await db.query("select * from public.credentials")).rows.length, 0, "candidates cannot see pre-issuance drafts");
+    assert.equal((await db.query("select * from public.credential_badges")).rows.length, 0);
     await db.query("update public.profiles set full_name='User edited name' where id=$1", [alice]);
     assert.equal((await db.query("update public.profiles set full_name='Attack' where id=$1 returning id", [bob])).rows.length, 0);
     await db.query("update public.profiles set username='alice-sec', visibility='public' where id=$1", [alice]);
@@ -58,7 +58,7 @@ test("credential migrations enforce ownership, private publication, exact lookup
     await db.query("delete from storage.objects where bucket_id='avatars'");
     assert.equal((await db.query("select * from storage.objects")).rows.length, 0, "owner can delete own image");
     await assert.rejects(db.query("update public.profiles set id=$1", [bob]), /permission denied/);
-    await assert.rejects(db.query("update public.credentials set status='ACTIVE'"), /permission denied/);
+    assert.equal((await db.query("update public.credentials set title='Unauthorized' returning id")).rows.length, 0, "non-issuer cannot update credentials");
     await assert.rejects(db.query("delete from public.credentials"), /permission denied/);
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [bob]);
     assert.equal((await db.query("select * from public.credentials")).rows.length, 0);
@@ -70,7 +70,7 @@ test("credential migrations enforce ownership, private publication, exact lookup
     assert.doesNotMatch(projected, /alice@example.com|11111111-1111-4111-8111-111111111111|private\/secret/);
     const lookup = async (requested = id, key = hash) => verificationResultSchema.parse((await db.query<{ result: unknown }>("select public.verify_public_credential($1,$2) as result", [requested, key])).rows[0].result);
     assert.equal((await lookup()).outcome, "not_found", "private credential indistinguishable from missing");
-    await db.exec(`update public.credentials set public_visible=true`);
+    await db.exec(`update public.credentials set status='ISSUED', public_visible=true, issued_at=now()`);
     const found = await lookup();
     assert.equal(found.outcome, "found");
     if (found.outcome !== "found") throw new Error("Expected published credential");
@@ -78,14 +78,14 @@ test("credential migrations enforce ownership, private publication, exact lookup
     assert.equal(found.credential.badges.length, 1);
     const raw = JSON.stringify((await db.query("select public.verify_public_credential($1,$2)", [id, hash])).rows);
     for (const privateField of ["owner_id", "email", "certificate_file_url", "verification_hash", "private/secret", "User edited name"]) assert.ok(!raw.includes(privateField), privateField);
-    for (const status of ["REVOKED", "SUSPENDED", "EXPIRED"]) {
-      await db.query("update public.credentials set status=$1::public.credential_status", [status]);
+    for (const status of ["REVOKED", "EXPIRED"]) {
+      await db.query("update public.credentials set status=$1::public.credential_status, revoked_at=case when $1='REVOKED' then now() else null end, revocation_reason=case when $1='REVOKED' then 'Policy violation' else null end", [status]);
       const value = await lookup(); assert.ok(value.outcome === "found" && value.credential.status === status);
     }
-    await db.exec("update public.credentials set status='ACTIVE', issue_date=current_date-2, expiry_date=current_date-1");
+    await db.exec("update public.credentials set status='ISSUED', revoked_at=null, revocation_reason=null, issue_date=current_date-2, expiry_date=current_date-1");
     let value = await lookup(); assert.ok(value.outcome === "found" && value.credential.status === "EXPIRED");
     await db.exec("update public.credentials set expiry_date=null, issue_date=current_date+1");
-    value = await lookup(); assert.ok(value.outcome === "found" && value.credential.status === "NOT_YET_VALID");
+    value = await lookup(); assert.ok(value.outcome === "found" && value.credential.status === "ISSUED");
     assert.equal((await lookup("UZY-CERT-2026-NOMATCH")).outcome, "not_found");
     assert.equal((await lookup("%" )).outcome, "not_found");
     const limitHash = "b".repeat(64);

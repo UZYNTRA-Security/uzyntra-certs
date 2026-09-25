@@ -17,7 +17,7 @@ export const profileSchema = z.object({
 export const badgeSchema = z.object({ name: z.string(), slug: z.string(), icon_url: z.string().regex(/^\/badges\/[a-zA-Z0-9_-]+\.(png|svg|webp|jpg|jpeg)$/), category: z.string(), level: z.string().nullable() });
 export const candidateCredentialSchema = z.object({
   credential_id: z.string(), title: z.string(), credential_type: z.enum(["COURSE_CERTIFICATE", "INTERNSHIP", "EMPLOYMENT", "CONTRIBUTION", "BUG_BOUNTY", "APPRECIATION", "ACHIEVEMENT"]),
-  issue_date: z.string(), expiry_date: z.string().nullable(), status: z.enum(["ACTIVE", "EXPIRED", "REVOKED", "SUSPENDED"]), public_visible: z.boolean(), badges: z.array(badgeSchema),
+  issue_date: z.string(), expiry_date: z.string().nullable(), status: z.enum(["ISSUED", "EXPIRED", "REVOKED"]), public_visible: z.boolean(), badges: z.array(badgeSchema),
 });
 export type CandidateCredential = z.infer<typeof candidateCredentialSchema>;
 export type EarnedBadge = z.infer<typeof badgeSchema> & { credential_id: string; credential_title: string; earned_date: string; status: string; public_visible: boolean };
@@ -28,10 +28,10 @@ export const publicProfileSchema = z.object({
 });
 export const categories: Record<CredentialType, string> = { COURSE_CERTIFICATE: "Courses", INTERNSHIP: "Internships", EMPLOYMENT: "Employment", CONTRIBUTION: "Contributions", APPRECIATION: "Appreciations", BUG_BOUNTY: "Bug Bounty", ACHIEVEMENT: "Achievements" };
 export function credentialStatus(credential: Pick<CandidateCredential, "status" | "issue_date" | "expiry_date">, today = new Date().toISOString().slice(0, 10)) {
-  if (credential.status !== "ACTIVE") return credential.status;
+  if (credential.status !== "ISSUED") return credential.status;
   if (credential.expiry_date && credential.expiry_date < today) return "EXPIRED";
   if (credential.issue_date > today) return "NOT_YET_VALID";
-  return "ACTIVE";
+  return "ISSUED";
 }
 export function earnedBadges(credentials: CandidateCredential[]): EarnedBadge[] {
   return credentials.flatMap((c) => c.badges.map((badge) => ({ ...badge, credential_id: c.credential_id, credential_title: c.title, earned_date: c.issue_date, status: credentialStatus(c), public_visible: c.public_visible })));

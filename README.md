@@ -3,7 +3,7 @@
 Digital credential verification for **UZYNTRA Security**, deployed at **https://certs.uzyntra.com**.
 Repository: https://github.com/UZYNTRA-Security/uzyntra-certs
 
-This release implements production authentication and recovery, credential verification, and the Phase 4 candidate identity experience. Hosted activation requires the migrations and Auth settings below. Local tests do not prove production email delivery or hosted migration application.
+This release implements production authentication and recovery, candidate identity, and the complete issuer-controlled credential lifecycle. Hosted activation requires the migrations and Auth settings below. Local tests do not prove production email delivery or hosted migration application.
 
 ## Included
 
@@ -13,10 +13,12 @@ This release implements production authentication and recovery, credential verif
 - Protected account shell and security page with verification status and recovery entry point. MFA, session controls and deletion remain clearly labelled placeholders.
 - Candidate dashboard, private profile editing, opt-in public professional profiles, owned credentials and earned badges.
 - Cropped profile-photo uploads with server-side image decoding, metadata removal, WebP optimization and private Supabase Storage delivery.
+- Issuer console with draft creation, candidate assignment, review, issuance, revocation, badge uploads and verification activity.
+- Downloadable verification QR codes and branded credential cards.
 - PostgreSQL profiles, credentials, badges, credential/badge relationships, verification logs and shared rate-limit storage, with RLS and least-privilege grants.
 - Public exact-ID verification with issuer-approved details, status, badges, metadata, Open Graph artwork and structured data.
 
-No issuing UI, admin dashboard, PDF generation, QR generation or MFA is included. No fake credentials or badge assignments are seeded.
+No general administration dashboard, PDF certificate generation, blockchain integration or MFA is included. No fake credentials or badge assignments are seeded.
 
 ## Stack and structure
 
@@ -60,6 +62,11 @@ tests/                     SDK, PostgreSQL, security and browser tests
 | `/dashboard/badges` | Badges earned through owned credentials |
 | `/dashboard/security` | Protected security settings structure |
 | `/profile/[username]` | Public candidate profile; private profiles return 404 |
+| `/issuer` | Protected credential lifecycle queue for approved issuer staff |
+| `/issuer/create` | Create and assign a credential draft |
+| `/issuer/badges` | Validate and upload badge artwork |
+| `/issuer/activity` | Minimal verification activity for issued credentials |
+| `/api/qr/[credential_id]` | QR PNG for an existing public credential |
 | `/api/health` | Liveness only; not database readiness |
 
 Only home/about are indexed. Account and verification URLs are noindex and omitted from the sitemap; public verification is shareable without exposing a searchable directory. Verification pages have canonical/OG metadata and escaped nonce-protected JSON-LD containing only approved fields.
@@ -88,7 +95,7 @@ Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with
 
 ## Supabase activation
 
-1. Review and apply migrations in order to the intended project. See [database documentation](supabase/README.md). Previously applied migrations must not be blindly rerun. The candidate identity migration also creates the private `avatars` bucket and ownership policies. Vercel never applies migrations automatically.
+1. Review and apply migrations in order to the intended project. See [database documentation](supabase/README.md). Previously applied migrations must not be blindly rerun. The identity and lifecycle migrations create private avatar/badge buckets and RLS policies. Vercel never applies migrations automatically.
 2. Set the four application environment variables above locally and in Vercel Production. Secret keys belong only in server environments.
 3. Enable Email/password, signups and **Confirm email**. Set the Supabase minimum password length to 8 for password recovery. Registration retains its existing 12-character application minimum. Keep MFA and anonymous signups disabled.
 4. Set Auth Site URL to `https://certs.uzyntra.com`. Allow exactly:
@@ -98,6 +105,17 @@ Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with
 6. Configure a production SMTP sender, SPF/DKIM and provider delivery settings. Set Auth's minimum email-send interval to **90 seconds** and review the project/IP email limits. Set email OTP expiration to **3600 seconds or less**. Recovery-token expiry/reuse is enforced by Supabase.
 7. Configure daily verification-log cleanup using Supabase Cron as documented below. Add edge rate limits to registration, recovery and verification entry points before public launch.
 8. Run `npm run check:env -- --production` and `npm run check:supabase -- --production`. The readiness check reads Auth settings and checks that registration/verification RPCs exist. It creates no accounts, emails, credentials or audit records. It does not prove complete migration history, SMTP delivery, templates, MFA or redirect allowlists.
+
+### Grant issuer access
+
+Issuer access is never inferred from email metadata. After a staff member has a verified Auth account, an authorized database operator grants the least-privileged role using the Auth UUID:
+
+```sql
+insert into public.credential_issuers (user_id, issuer_name, role)
+values ('AUTH-USER-UUID', 'UZYNTRA Security', 'ISSUER');
+```
+
+Use `REVIEWER` for staff who may issue and revoke, or `ADMIN` for lifecycle administration. Disable access with `active = false`. Do not expose a role-granting UI to candidates.
 9. Use approved test accounts to verify new registration, existing-unverified resend, existing-verified sign-in actions, email confirmation, reset links in a different browser, invalid/reused links, logout and protected-route redirects.
 
 `supabase/config.toml` configures only the local stack; editing it does not update hosted Auth. Local Auth templates and callback allowlists are included.
@@ -161,7 +179,7 @@ PostgreSQL tests apply the actual migrations in isolated PGlite and exercise gra
 
 Always inspect `public/badges/` before working on badges or pushing supplied artwork. Existing assets are ai-engineering, cloud-security, cybersecurity, devsecops-engineer and offensive-ai PNGs. Keep their filenames and artwork. No record is assigned merely because an image exists; authorized future issuing work links approved badge records.
 
-Next: Phase 5 admin issuing, followed by PDF/QR work. These features are outside this release.
+Next: operator administration and optional PDF certificate rendering. These features remain outside this release.
 
 ## References
 

@@ -1,0 +1,3 @@
+import {requireIssuerPage} from "@/lib/issuer/guards";
+import {IssuerNav} from "@/components/issuer/issuer-nav";
+export default async function IssuerLayout({children}:{children:React.ReactNode}){const{issuer}=await requireIssuerPage();return <div className="mx-auto max-w-7xl space-y-8 px-6 py-12"><header><p className="text-xs uppercase tracking-[.2em] text-primary">UZYNTRA issuer console</p><div className="mt-3 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-3xl font-semibold">Credential operations</h1><p className="mt-2 text-sm text-muted-foreground">{issuer.issuer_name} · {issuer.role.toLowerCase()}</p></div><IssuerNav/></div></header>{children}</div>}

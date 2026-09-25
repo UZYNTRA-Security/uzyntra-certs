@@ -36,5 +36,5 @@ test("profile input normalizes usernames and only permits safe HTTPS links", () 
 test("public profile projection rejects private fields", () => {
   const safe = { username: "alice-sec", full_name: "Alice", headline: null, bio: null, country: null, linkedin_url: null, github_url: null, portfolio_url: null, has_avatar: false, avatar_updated_at: null, credentials: [] };
   assert.deepEqual(publicProfileSchema.parse({ ...safe, email: "private@example.com", id: user }), safe);
-  assert.equal(credentialStatus({ status: "ACTIVE", issue_date: "2020-01-01", expiry_date: "2020-01-02" }, "2026-01-01"), "EXPIRED");
+  assert.equal(credentialStatus({ status: "ISSUED", issue_date: "2020-01-01", expiry_date: "2020-01-02" }, "2026-01-01"), "EXPIRED");
 });

@@ -7,7 +7,7 @@ import sitemap from "../src/app/sitemap";
 import { pageMetadata } from "../src/lib/metadata";
 
 test("proxy covers pages but excludes only intended assets and metadata endpoints", () => {
-  for (const url of ["/", "/about", "/verify", "/login", "/register", "/dashboard", "/auth/callback", "/api/health-private", "/robots.txt-extra"]) {
+  for (const url of ["/", "/about", "/verify", "/login", "/register", "/dashboard", "/issuer", "/auth/callback", "/api/health-private", "/robots.txt-extra"]) {
     assert.equal(doesProxyMatch({ config, url }), true, url);
   }
   for (const url of ["/robots.txt", "/sitemap.xml", "/favicon.ico", "/apple-icon.png", "/icon.svg", "/badges/offensive-ai.png", "/_next/static/chunks/app.js", "/_vercel/speed-insights/script.js", "/api/health"]) {
