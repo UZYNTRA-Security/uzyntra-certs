@@ -5,8 +5,8 @@ export type CredentialStatus = 'DRAFT' | 'PENDING_REVIEW' | 'ISSUED' | 'EXPIRED'
 export type BadgeCategory = 'COURSE' | 'SECURITY' | 'CONTRIBUTION' | 'INTERNSHIP' | 'RECOGNITION';
 export type CredentialCategory = 'COURSE' | 'INTERNSHIP' | 'EMPLOYMENT' | 'CONTRIBUTION' | 'APPRECIATION' | 'BUG_BOUNTY' | 'ACHIEVEMENT';
 export type IssuerRole = 'ISSUER' | 'REVIEWER' | 'ADMIN';
-export type OrganizationType = 'SECURITY_COMPANY'|'UNIVERSITY'|'TRAINING_PROVIDER'|'CORPORATE'|'COMMUNITY';
-export type OrganizationVerifiedStatus = 'PENDING'|'VERIFIED'|'SUSPENDED';
+export type OrganizationType = 'SECURITY_COMPANY'|'UNIVERSITY'|'TRAINING_PROVIDER'|'TRAINING_INSTITUTE'|'SOFTWARE_HOUSE'|'COMPANY'|'GOVERNMENT'|'CORPORATE'|'COMMUNITY';
+export type OrganizationVerifiedStatus = 'PENDING'|'UNDER_REVIEW'|'VERIFIED'|'SUSPENDED'|'REJECTED';
 export type OrganizationMemberRole = 'ADMIN'|'REVIEWER'|'ISSUER'|'VIEWER';
 export type OrganizationMemberStatus = 'INVITED'|'ACTIVE'|'SUSPENDED';
 export type Database = { public: { Tables: {
@@ -23,9 +23,29 @@ Update: { id?: string; credential_id?: string; certificate_slug?: string; owner_
 Relationships: [{ foreignKeyName: "credentials_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }];
 };
 organizations: {
-Row:{id:string;name:string;slug:string;logo_url:string|null;description:string|null;website:string|null;organization_type:OrganizationType;verified_status:OrganizationVerifiedStatus;created_at:string;updated_at:string};
-Insert:{id?:string;name:string;slug:string;logo_url?:string|null;description?:string|null;website?:string|null;organization_type:OrganizationType;verified_status?:OrganizationVerifiedStatus;created_at?:string;updated_at?:string};
-Update:{id?:string;name?:string;slug?:string;logo_url?:string|null;description?:string|null;website?:string|null;organization_type?:OrganizationType;verified_status?:OrganizationVerifiedStatus;created_at?:string;updated_at?:string};Relationships:[];
+Row:{id:string;name:string;slug:string;logo_url:string|null;description:string|null;website:string|null;official_email:string|null;country:string|null;subscription_plan:string;subscription_status:string;organization_type:OrganizationType;verified_status:OrganizationVerifiedStatus;created_at:string;updated_at:string};
+Insert:{id?:string;name:string;slug:string;logo_url?:string|null;description?:string|null;website?:string|null;official_email?:string|null;country?:string|null;subscription_plan?:string;subscription_status?:string;organization_type:OrganizationType;verified_status?:OrganizationVerifiedStatus;created_at?:string;updated_at?:string};
+Update:{id?:string;name?:string;slug?:string;logo_url?:string|null;description?:string|null;website?:string|null;official_email?:string|null;country?:string|null;subscription_plan?:string;subscription_status?:string;organization_type?:OrganizationType;verified_status?:OrganizationVerifiedStatus;created_at?:string;updated_at?:string};Relationships:[];
+};
+organization_applications:{
+Row:{id:string;organization_name:string;organization_slug:string;organization_type:OrganizationType;website:string|null;official_email:string;country:string|null;description:string|null;logo_url:string|null;applicant_user_id:string;status:OrganizationVerifiedStatus;reviewed_by:string|null;reviewed_at:string|null;review_note:string|null;organization_id:string|null;created_at:string;updated_at:string};
+Insert:{id?:string;organization_name:string;organization_slug:string;organization_type:OrganizationType;website?:string|null;official_email:string;country?:string|null;description?:string|null;logo_url?:string|null;applicant_user_id:string;status?:OrganizationVerifiedStatus;reviewed_by?:string|null;reviewed_at?:string|null;review_note?:string|null;organization_id?:string|null;created_at?:string;updated_at?:string};
+Update:{id?:string;organization_name?:string;organization_slug?:string;organization_type?:OrganizationType;website?:string|null;official_email?:string;country?:string|null;description?:string|null;logo_url?:string|null;applicant_user_id?:string;status?:OrganizationVerifiedStatus;reviewed_by?:string|null;reviewed_at?:string|null;review_note?:string|null;organization_id?:string|null;created_at?:string;updated_at?:string};Relationships:[];
+};
+organization_invites:{
+Row:{id:string;organization_id:string;email:string;role:OrganizationMemberRole;invited_by:string;token_hash:string;status:OrganizationMemberStatus;accepted_by:string|null;accepted_at:string|null;expires_at:string;created_at:string};
+Insert:{id?:string;organization_id:string;email:string;role:OrganizationMemberRole;invited_by:string;token_hash:string;status?:OrganizationMemberStatus;accepted_by?:string|null;accepted_at?:string|null;expires_at?:string;created_at?:string};
+Update:{id?:string;organization_id?:string;email?:string;role?:OrganizationMemberRole;invited_by?:string;token_hash?:string;status?:OrganizationMemberStatus;accepted_by?:string|null;accepted_at?:string|null;expires_at?:string;created_at?:string};Relationships:[];
+};
+organization_settings:{
+Row:{organization_id:string;issuer_display_name:string;brand_color:string|null;certificate_footer_text:string|null;logo_url:string|null;updated_by:string|null;updated_at:string};
+Insert:{organization_id:string;issuer_display_name:string;brand_color?:string|null;certificate_footer_text?:string|null;logo_url?:string|null;updated_by?:string|null;updated_at?:string};
+Update:{organization_id?:string;issuer_display_name?:string;brand_color?:string|null;certificate_footer_text?:string|null;logo_url?:string|null;updated_by?:string|null;updated_at?:string};Relationships:[];
+};
+organization_audit_logs:{
+Row:{id:string;organization_id:string|null;actor_user_id:string|null;action:string;details:Json;created_at:string};
+Insert:{id?:string;organization_id?:string|null;actor_user_id?:string|null;action:string;details?:Json;created_at?:string};
+Update:{id?:string;organization_id?:string|null;actor_user_id?:string|null;action?:string;details?:Json;created_at?:string};Relationships:[];
 };
 organization_members:{
 Row:{id:string;organization_id:string;user_id:string;role:OrganizationMemberRole;status:OrganizationMemberStatus;created_at:string};
@@ -83,6 +103,7 @@ admin_update_organization_status:{Args:{actor_user:string;target_organization:st
 admin_upsert_organization_member:{Args:{actor_user:string;target_organization:string;target_user:string;new_role:OrganizationMemberRole;new_status?:OrganizationMemberStatus};Returns:Json};
 admin_remove_organization_member:{Args:{actor_user:string;target_membership:string};Returns:Json};
 admin_create_organization:{Args:{actor_user:string;new_name:string;new_slug:string;new_type:OrganizationType;new_description?:string|null;new_website?:string|null;new_status?:OrganizationVerifiedStatus};Returns:Json};
+admin_review_organization_application:{Args:{actor_user:string;target_application:string;new_status:OrganizationVerifiedStatus;note?:string|null};Returns:Json};
 make_certificate_slug:{Args:{new_title:string;public_id:string};Returns:string};
 create_credential_draft: { Args: {actor_user:string;target_organization?:string;recipient_user:string;new_type:CredentialType;new_category:CredentialCategory;new_title:string;new_description:string|null;new_issue_date:string;new_expiry_date:string|null;new_badge?:string|null}; Returns: Json };
 transition_credential: { Args: {actor_user:string;target_credential:string;requested_action:string;reason?:string|null}; Returns: Json };

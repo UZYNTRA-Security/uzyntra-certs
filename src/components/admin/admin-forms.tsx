@@ -17,7 +17,7 @@ export function OrganizationStatusForm({ organizationId, status }: { organizatio
   return <form action={action} className="flex flex-wrap items-center gap-2">
     <input type="hidden" name="organization_id" value={organizationId} />
     <select name="status" defaultValue={status} className="h-9 rounded-md border bg-background px-2 text-sm">
-      {["PENDING", "VERIFIED", "SUSPENDED"].map((value) => <option key={value}>{value}</option>)}
+      {["PENDING", "UNDER_REVIEW", "VERIFIED", "SUSPENDED", "REJECTED"].map((value) => <option key={value}>{value}</option>)}
     </select>
     {!confirming ? <Button type="button" size="sm" variant="outline" onClick={() => setConfirming(true)}>Change</Button> : <Button size="sm" disabled={pending}>Confirm</Button>}
     <Status message={state.message} error={state.status === "error"} />
@@ -30,7 +30,7 @@ export function OrganizationCreateForm() {
     <Input name="name" placeholder="Organization name" required maxLength={160} />
     <Input name="slug" placeholder="organization-slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" />
     <select name="organization_type" className="h-10 rounded-md border bg-background px-3 text-sm">{["SECURITY_COMPANY", "UNIVERSITY", "TRAINING_PROVIDER", "CORPORATE", "COMMUNITY"].map((value) => <option key={value}>{value}</option>)}</select>
-    <select name="verified_status" className="h-10 rounded-md border bg-background px-3 text-sm">{["PENDING", "VERIFIED", "SUSPENDED"].map((value) => <option key={value}>{value}</option>)}</select>
+    <select name="verified_status" className="h-10 rounded-md border bg-background px-3 text-sm">{["PENDING", "UNDER_REVIEW", "VERIFIED", "SUSPENDED", "REJECTED"].map((value) => <option key={value}>{value}</option>)}</select>
     <Input name="website" placeholder="https://example.com" className="lg:col-span-2" />
     <textarea name="description" rows={2} maxLength={2000} placeholder="Internal organization description" className="rounded-md border bg-background p-3 text-sm lg:col-span-2" />
     <div className="lg:col-span-4"><Button disabled={pending}>{pending ? "Creating..." : "Create organization"}</Button><Status message={state.message} error={state.status === "error"} /></div>

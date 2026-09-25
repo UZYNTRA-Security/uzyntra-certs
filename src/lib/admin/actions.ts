@@ -16,13 +16,13 @@ const refreshAdmin = () => {
 
 const organizationStatusSchema = z.object({
   organization_id: z.uuid(),
-  status: z.enum(["PENDING", "VERIFIED", "SUSPENDED"]),
+  status: z.enum(["PENDING", "UNDER_REVIEW", "VERIFIED", "SUSPENDED", "REJECTED"]),
 });
 const organizationCreateSchema = z.object({
   name: z.string().trim().min(2).max(160),
   slug: z.string().trim().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   organization_type: z.enum(["SECURITY_COMPANY", "UNIVERSITY", "TRAINING_PROVIDER", "CORPORATE", "COMMUNITY"]),
-  verified_status: z.enum(["PENDING", "VERIFIED", "SUSPENDED"]).default("PENDING"),
+  verified_status: z.enum(["PENDING", "UNDER_REVIEW", "VERIFIED", "SUSPENDED", "REJECTED"]).default("PENDING"),
   description: z.string().trim().max(2000).optional(),
   website: z.string().trim().optional(),
 });
