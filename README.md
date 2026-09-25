@@ -3,7 +3,7 @@
 Digital credential verification for **UZYNTRA Security**, deployed at **https://certs.uzyntra.com**.
 Repository: https://github.com/UZYNTRA-Security/uzyntra-certs
 
-This release implements Phase 1.3 (authentication UX and recovery), Phase 2 (credential database foundation), and Phase 3 (public verification). Hosted activation requires the migrations and Auth settings below. Local tests do not prove production email delivery or hosted migration application.
+This release implements production authentication and recovery, credential verification, and the Phase 4 candidate identity experience. Hosted activation requires the migrations and Auth settings below. Local tests do not prove production email delivery or hosted migration application.
 
 ## Included
 
@@ -11,10 +11,12 @@ This release implements Phase 1.3 (authentication UX and recovery), Phase 2 (cre
 - Registration distinguishes new, unverified and verified accounts. Verified accounts see sign-in/recovery actions; only unverified accounts see confirmation resend.
 - Confirmation resend includes a 90-second countdown retained across same-tab reloads. Supabase rate limits remain authoritative; the browser timer is not an abuse-prevention boundary.
 - Protected account shell and security page with verification status and recovery entry point. MFA, session controls and deletion remain clearly labelled placeholders.
+- Candidate dashboard, private profile editing, opt-in public professional profiles, owned credentials and earned badges.
+- Cropped profile-photo uploads with server-side image decoding, metadata removal, WebP optimization and private Supabase Storage delivery.
 - PostgreSQL profiles, credentials, badges, credential/badge relationships, verification logs and shared rate-limit storage, with RLS and least-privilege grants.
 - Public exact-ID verification with issuer-approved details, status, badges, metadata, Open Graph artwork and structured data.
 
-No issuing UI, admin dashboard, PDF generation, QR generation, MFA or candidate credential dashboard is included. No fake credentials or badge assignments are seeded.
+No issuing UI, admin dashboard, PDF generation, QR generation or MFA is included. No fake credentials or badge assignments are seeded.
 
 ## Stack and structure
 
@@ -52,8 +54,12 @@ tests/                     SDK, PostgreSQL, security and browser tests
 | `/reset-password` | Recovery code/token form and password update |
 | `/auth/reset-password` | Compatibility route for older email links |
 | `/auth/callback` | Signup confirmation via PKCE or email token hash |
-| `/dashboard` | Protected account shell |
+| `/dashboard` | Protected candidate overview |
+| `/dashboard/profile` | Profile, visibility and avatar management |
+| `/dashboard/credentials` | Owned credentials and category filters |
+| `/dashboard/badges` | Badges earned through owned credentials |
 | `/dashboard/security` | Protected security settings structure |
+| `/profile/[username]` | Public candidate profile; private profiles return 404 |
 | `/api/health` | Liveness only; not database readiness |
 
 Only home/about are indexed. Account and verification URLs are noindex and omitted from the sitemap; public verification is shareable without exposing a searchable directory. Verification pages have canonical/OG metadata and escaped nonce-protected JSON-LD containing only approved fields.
@@ -82,7 +88,7 @@ Use `NEXT_PUBLIC_SITE_URL=http://localhost:3000` for local Auth development with
 
 ## Supabase activation
 
-1. Review and apply migrations in order to the intended project. See [database documentation](supabase/README.md). Previously applied migrations must not be blindly rerun. New migrations add registration states and the credential schema. Vercel never applies them automatically.
+1. Review and apply migrations in order to the intended project. See [database documentation](supabase/README.md). Previously applied migrations must not be blindly rerun. The candidate identity migration also creates the private `avatars` bucket and ownership policies. Vercel never applies migrations automatically.
 2. Set the four application environment variables above locally and in Vercel Production. Secret keys belong only in server environments.
 3. Enable Email/password, signups and **Confirm email**. Set the Supabase minimum password length to 8 for password recovery. Registration retains its existing 12-character application minimum. Keep MFA and anonymous signups disabled.
 4. Set Auth Site URL to `https://certs.uzyntra.com`. Allow exactly:
@@ -127,7 +133,7 @@ npm run test:browser
 npm run test:auth-routes
 ```
 
-PostgreSQL tests apply the actual migrations in isolated PGlite and exercise grants, RLS, cross-user denial, private/public projection, statuses, rate limits, logs and retention. Auth tests run the real SDK against a controlled transport, including recovery token rejection/reuse and session cleanup. Browser tests check public verification, protected-route redirects, recovery UI and resend cooldown persistence without sending real email or creating production accounts. Hosted SMTP and publication still require a staging acceptance test.
+PostgreSQL tests apply the actual migrations in isolated PGlite and exercise grants, RLS, cross-user denial, profile visibility, avatar ownership/deletion, private/public projections, statuses, rate limits, logs and retention. Image tests decode and optimize real raster bytes and reject malformed, mismatched or oversized inputs. Auth tests run the real SDK against a controlled transport, including recovery token rejection/reuse and session cleanup. Browser tests check public verification, protected-route redirects, recovery UI and resend cooldown persistence without sending real email or creating production accounts. Hosted SMTP, Storage and publication still require a staging acceptance test.
 
 ## Vercel and Cloudflare deployment
 
@@ -155,7 +161,7 @@ PostgreSQL tests apply the actual migrations in isolated PGlite and exercise gra
 
 Always inspect `public/badges/` before working on badges or pushing supplied artwork. Existing assets are ai-engineering, cloud-security, cybersecurity, devsecops-engineer and offensive-ai PNGs. Keep their filenames and artwork. No record is assigned merely because an image exists; authorized future issuing work links approved badge records.
 
-Next: Phase 4 candidate credential dashboard, then Phase 5 admin issuing, followed by PDF/QR work. These features are outside this release.
+Next: Phase 5 admin issuing, followed by PDF/QR work. These features are outside this release.
 
 ## References
 

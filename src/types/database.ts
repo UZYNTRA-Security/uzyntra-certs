@@ -5,9 +5,9 @@ export type CredentialStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED';
 export type BadgeCategory = 'COURSE' | 'SECURITY' | 'CONTRIBUTION' | 'INTERNSHIP' | 'RECOGNITION';
 export type Database = { public: { Tables: {
 profiles: {
-Row: { id: string; full_name: string; username: string | null; avatar_url: string | null; bio: string | null; linkedin_url: string | null; github_url: string | null; website_url: string | null; created_at: string; updated_at: string };
-Insert: { id: string; full_name?: string; username?: string | null; avatar_url?: string | null; bio?: string | null; linkedin_url?: string | null; github_url?: string | null; website_url?: string | null; created_at?: string; updated_at?: string };
-Update: { id?: string; full_name?: string; username?: string | null; avatar_url?: string | null; bio?: string | null; linkedin_url?: string | null; github_url?: string | null; website_url?: string | null; created_at?: string; updated_at?: string };
+Row: { headline: string | null; country: string | null; portfolio_url: string | null; visibility: "public" | "private"; avatar_updated_at: string | null; id: string; full_name: string; username: string | null; avatar_url: string | null; bio: string | null; linkedin_url: string | null; github_url: string | null; website_url: string | null; created_at: string; updated_at: string };
+Insert: { headline?: string | null; country?: string | null; portfolio_url?: string | null; visibility?: "public" | "private"; avatar_updated_at?: string | null; id: string; full_name?: string; username?: string | null; avatar_url?: string | null; bio?: string | null; linkedin_url?: string | null; github_url?: string | null; website_url?: string | null; created_at?: string; updated_at?: string };
+Update: { headline?: string | null; country?: string | null; portfolio_url?: string | null; visibility?: "public" | "private"; avatar_updated_at?: string | null; id?: string; full_name?: string; username?: string | null; avatar_url?: string | null; bio?: string | null; linkedin_url?: string | null; github_url?: string | null; website_url?: string | null; created_at?: string; updated_at?: string };
 Relationships: [];
 };
 credentials: {
@@ -41,6 +41,7 @@ Update: { requester_hash?: string; window_start?: string; attempts?: number };
 Relationships: [];
 };
 }; Views: Record<string, never>; Functions: {
+get_public_profile: { Args: {requested_username: string}; Returns: Json };
 is_email_registered: { Args: {email_to_check: string}; Returns: boolean };
 registration_email_state: { Args: {email_to_check: string}; Returns: string };
 verify_public_credential: { Args: {requested_id: string; requester_hash: string}; Returns: Json };

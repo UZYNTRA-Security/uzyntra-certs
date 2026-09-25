@@ -8,6 +8,7 @@ Apply these migrations only to the dedicated UZYNTRA Certs project. No fabricate
 2. `20260924000000_registration_email_lookup.sql`: original boolean Auth lookup, retained for compatibility.
 3. `20260924010000_auth_registration_state.sql`: service-only new/unverified/verified lookup.
 4. `20260924020000_credential_foundation.sql`: credential schema, RLS, profile provisioning, public projection, logging and rate limits.
+5. `20260924030000_candidate_identity.sql`: candidate profile fields and visibility, safe public profile projection, private avatar bucket and owner-scoped Storage policies.
 
 For a linked project:
 
@@ -35,11 +36,13 @@ With Docker, `npm run db:start` starts the local stack. `npm run db:reset` reapp
 
 Every table has RLS enabled. Only trusted operators/service-role operations can issue, publish, revoke or link credentials and badges. A user cannot update their profile ID or grant themselves credential ownership. `create_auth_profile()` provisions an empty profile for existing and new Auth accounts; it does not copy untrusted metadata into public records. It runs with a fixed empty search path and cannot be called by anonymous/authenticated roles. Timestamp triggers update `updated_at` automatically.
 
-Profiles contain `full_name`, unique lowercase `username`, `avatar_url`, `bio`, LinkedIn/GitHub/website URLs and timestamps. URL fields require HTTPS and bounded lengths. Profiles are private, including names; no public profile listing exists.
+Profiles contain `full_name`, unique lowercase `username`, an internal validated `avatar_url`, headline, bio, country, LinkedIn/GitHub/portfolio URLs, visibility and timestamps. URL fields require HTTPS and bounded lengths. Profiles default to private. Public profiles require a full name and username and are exposed only through the service-only `get_public_profile()` projection; no profile listing or account email is public.
 
 Credentials contain a private UUID, unique public `credential_id`, owner FK, enum type/status, title/description, dates, certificate file reference, internal `verification_hash`, and timestamps. Types are COURSE_CERTIFICATE, INTERNSHIP, EMPLOYMENT, CONTRIBUTION, BUG_BOUNTY, APPRECIATION, ACHIEVEMENT. Stored statuses are ACTIVE, EXPIRED, REVOKED, SUSPENDED. `verification_hash` is an internal random opaque value in this foundation, not a file-integrity or digital-signature claim. File generation/signing remains future work.
 
-Credential defaults generate unpredictable public IDs with 128 random bits. The illustration `UZY-CERT-2026-A82KD` is accepted for existing IDs, but new operators should use generated defaults. Keep `certificate_file_url` private (prefer a private Storage object path); the public query never returns it. No Storage buckets or public document policies are created.
+Credential defaults generate unpredictable public IDs with 128 random bits. The illustration `UZY-CERT-2026-A82KD` is accepted for existing IDs, but new operators should use generated defaults. Keep `certificate_file_url` private (prefer a private Storage object path); the public query never returns it.
+
+The `avatars` Storage bucket is private and limited to PNG, JPEG and WebP objects up to 5 MB. Authenticated clients may upload only uniquely named drafts inside their own UUID folder. The server decodes, crops, removes metadata and re-encodes the approved result to `{user_id}/profile-image.webp`. Public image bytes are served through `/api/avatar` only while the matching profile is public, using `no-store`; direct anonymous Storage reads and bucket listings remain unavailable.
 
 Badge categories are COURSE, SECURITY, CONTRIBUTION, INTERNSHIP, RECOGNITION. Icons must reference a filename in `/badges/` using the allowed image extensions. Current supplied artwork is available without assigning badges automatically. Credentials reference profiles with delete RESTRICT so account removal cannot silently destroy issuer records; a future deletion workflow must explicitly address record retention.
 
