@@ -156,21 +156,14 @@ function drawRecognitionSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof 
 }
 
 function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, cx: number, cy: number, radius: number) {
-  const top = cy + radius - 5;
-  const left = cx - radius + 6;
-  const right = cx + radius - 6;
-  const mid = cx;
-  const bottom = cy - radius + 8;
   page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.4 });
   page.drawCircle({ x: cx, y: cy, size: radius - 8, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.7 });
-  page.drawLine({ start: { x: left, y: top }, end: { x: right, y: top }, color: green, thickness: 1.2 });
-  page.drawLine({ start: { x: left, y: top }, end: { x: left + 3, y: cy - 6 }, color: green, thickness: 1.2 });
-  page.drawLine({ start: { x: right, y: top }, end: { x: right - 3, y: cy - 6 }, color: green, thickness: 1.2 });
-  page.drawLine({ start: { x: left + 3, y: cy - 6 }, end: { x: mid, y: bottom }, color: green, thickness: 1.2 });
-  page.drawLine({ start: { x: right - 3, y: cy - 6 }, end: { x: mid, y: bottom }, color: green, thickness: 1.2 });
-  drawCenteredText(page, "UZYNTRA", cx, cy + 14, 5.4, fonts.heading, green);
-  drawCenteredText(page, "CERTS", cx, cy + 5, 7, fonts.heading, text);
-  drawCenteredText(page, "VERIFIED AUTHORITY", cx, cy - 10, 4.5, fonts.body, muted);
+  page.drawCircle({ x: cx, y: cy, size: radius - 19, borderColor: green, borderWidth: 0.7 });
+  page.drawLine({ start: { x: cx - 9, y: cy - 1 }, end: { x: cx - 3, y: cy - 8 }, color: green, thickness: 1.4 });
+  page.drawLine({ start: { x: cx - 3, y: cy - 8 }, end: { x: cx + 12, y: cy + 8 }, color: green, thickness: 1.4 });
+  drawCenteredText(page, "UZYNTRA CERTS", cx, cy + 20, 4.7, fonts.heading, green);
+  drawCenteredText(page, "VERIFIED", cx, cy - 18, 5.7, fonts.heading, text);
+  drawCenteredText(page, "CERTIFICATION AUTHORITY", cx, cy - 26, 3.6, fonts.body, muted);
 }
 
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
