@@ -156,17 +156,26 @@ function drawRecognitionSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof 
 }
 
 function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, cx: number, cy: number, radius: number) {
-  page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.5 });
-  page.drawCircle({ x: cx, y: cy, size: radius - 9, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.75 });
-  page.drawCircle({ x: cx, y: cy, size: radius - 20, color: rgb(0.055, 0.12, 0.095), borderColor: green, borderWidth: 0.6 });
-  drawCenteredText(page, "UZYNTRA CERTS", cx, cy + 7, 5.6, fonts.heading, green);
-  drawCenteredText(page, "VERIFIED", cx, cy - 2, 6.4, fonts.heading, text);
-  drawCenteredText(page, "AUTHORITY", cx, cy - 12, 4.8, fonts.body, muted);
+  const top = cy + radius - 5;
+  const left = cx - radius + 6;
+  const right = cx + radius - 6;
+  const mid = cx;
+  const bottom = cy - radius + 8;
+  page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.4 });
+  page.drawCircle({ x: cx, y: cy, size: radius - 8, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.7 });
+  page.drawLine({ start: { x: left, y: top }, end: { x: right, y: top }, color: green, thickness: 1.2 });
+  page.drawLine({ start: { x: left, y: top }, end: { x: left + 3, y: cy - 6 }, color: green, thickness: 1.2 });
+  page.drawLine({ start: { x: right, y: top }, end: { x: right - 3, y: cy - 6 }, color: green, thickness: 1.2 });
+  page.drawLine({ start: { x: left + 3, y: cy - 6 }, end: { x: mid, y: bottom }, color: green, thickness: 1.2 });
+  page.drawLine({ start: { x: right - 3, y: cy - 6 }, end: { x: mid, y: bottom }, color: green, thickness: 1.2 });
+  drawCenteredText(page, "UZYNTRA", cx, cy + 14, 5.4, fonts.heading, green);
+  drawCenteredText(page, "CERTS", cx, cy + 5, 7, fonts.heading, text);
+  drawCenteredText(page, "VERIFIED AUTHORITY", cx, cy - 10, 4.5, fonts.body, muted);
 }
 
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
   const font = fonts.allura;
-  const signature = "m.usama";
+  const signature = "m.Usama";
   const signatureSize = 42;
   const signatureWidth = font.widthOfTextAtSize(signature, signatureSize);
   const centerX = 660;
