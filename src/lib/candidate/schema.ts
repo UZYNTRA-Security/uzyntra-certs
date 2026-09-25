@@ -14,7 +14,7 @@ export const profileSchema = z.object({
   linkedin_url: url("linkedin.com"), github_url: url("github.com"), portfolio_url: url(),
   visibility: z.enum(["public", "private"]),
 });
-export const badgeSchema = z.object({ name: z.string(), slug: z.string(), icon_url: z.string().regex(/^\/badges\/[a-zA-Z0-9_-]+\.(png|svg|webp|jpg|jpeg)$/), category: z.string(), level: z.string().nullable() });
+export const badgeSchema = z.object({ name: z.string(), slug: z.string(), icon_url: z.string().regex(/^\/(?:badges\/[a-zA-Z0-9_-]+\.(png|svg|webp|jpg|jpeg)|api\/badge\/[a-f0-9-]{36})$/), category: z.string(), level: z.string().nullable() });
 export const candidateCredentialSchema = z.object({
   credential_id: z.string(), title: z.string(), credential_type: z.enum(["COURSE_CERTIFICATE", "INTERNSHIP", "EMPLOYMENT", "CONTRIBUTION", "BUG_BOUNTY", "APPRECIATION", "ACHIEVEMENT"]),
   issue_date: z.string(), expiry_date: z.string().nullable(), status: z.enum(["ISSUED", "EXPIRED", "REVOKED"]), public_visible: z.boolean(), badges: z.array(badgeSchema),

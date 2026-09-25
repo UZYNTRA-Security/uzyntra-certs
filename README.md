@@ -14,6 +14,7 @@ This release implements production authentication and recovery, candidate identi
 - Candidate dashboard, private profile editing, opt-in public professional profiles, owned credentials and earned badges.
 - Cropped profile-photo uploads with server-side image decoding, metadata removal, WebP optimization and private Supabase Storage delivery.
 - Issuer console with draft creation, candidate assignment, review, issuance, revocation, badge uploads and verification activity.
+- UZYNTRA staff administration for organizations, members, credentials, badges and immutable audit logs.
 - Downloadable verification QR codes and branded credential cards.
 - PostgreSQL profiles, credentials, badges, credential/badge relationships, verification logs and shared rate-limit storage, with RLS and least-privilege grants.
 - Public exact-ID verification with issuer-approved details, status, badges, metadata, Open Graph artwork and structured data.
@@ -65,6 +66,12 @@ tests/                     SDK, PostgreSQL, security and browser tests
 | `/issuer` | Protected credential lifecycle queue for approved issuer staff |
 | `/issuer/create` | Create and assign a credential draft |
 | `/issuer/badges` | Validate and upload badge artwork |
+| `/admin` | Staff-only operational overview |
+| `/admin/organizations` | Verify or suspend issuer organizations |
+| `/admin/members` | Add, update, suspend or remove organization members |
+| `/admin/credentials` | Review, approve, revoke and audit credentials |
+| `/admin/badges` | Upload artwork and activate or deactivate badge catalog records |
+| `/admin/audit` | Review immutable credential lifecycle events |
 | `/issuer/activity` | Minimal verification activity for issued credentials |
 | `/api/qr/[credential_id]` | QR PNG for an existing public credential |
 | `/api/health` | Liveness only; not database readiness |
@@ -177,9 +184,11 @@ PostgreSQL tests apply the actual migrations in isolated PGlite and exercise gra
 
 ## Badge assets and next phases
 
-Always inspect `public/badges/` before working on badges or pushing supplied artwork. The directory currently contains 20 UZYNTRA badge PNGs. Keep their filenames and artwork. Badge files are a catalog source, not proof that a candidate earned an award; an approved issued credential must link each earned badge.
+Always inspect `public/badges/` before working on badges or pushing supplied artwork. The directory currently contains 21 UZYNTRA badge PNGs. Keep their filenames and artwork. Badge files seed the approved catalog in Phase 7. The `usamamatrix` public profile receives issued UZYNTRA credentials only through the controlled migration and audit event path requested by UZYNTRA operations.
 
-Next: operator administration and optional PDF certificate rendering. These features remain outside this release.
+The staff super-admin account is `admin@uzyntra.com`. When that Supabase Auth user exists, the Phase 7 migration sets its profile username to `UZYNTRA` and grants active `ADMIN` membership in UZYNTRA Security.
+
+Next: optional PDF certificate rendering, external partner onboarding, billing and API access. These features remain outside this release.
 
 ## References
 

@@ -45,9 +45,9 @@ Update: never;
 Relationships: [];
 };
 badges: {
-Row: { id: string; name: string; slug: string; description: string | null; category: BadgeCategory; level: string | null; icon_url: string; created_at: string };
-Insert: { id?: string; name: string; slug: string; description?: string | null; category: BadgeCategory; level?: string | null; icon_url: string; created_at?: string };
-Update: { id?: string; name?: string; slug?: string; description?: string | null; category?: BadgeCategory; level?: string | null; icon_url?: string; created_at?: string };
+Row: { id: string; name: string; slug: string; description: string | null; category: BadgeCategory; level: string | null; icon_url: string; active: boolean; created_at: string };
+Insert: { id?: string; name: string; slug: string; description?: string | null; category: BadgeCategory; level?: string | null; icon_url: string; active?: boolean; created_at?: string };
+Update: { id?: string; name?: string; slug?: string; description?: string | null; category?: BadgeCategory; level?: string | null; icon_url?: string; active?: boolean; created_at?: string };
 Relationships: [];
 };
 credential_badges: {
@@ -74,6 +74,9 @@ find_candidate_for_issuance: { Args: {candidate_email: string}; Returns: Json };
 is_active_issuer: { Args: {allowed_roles?: IssuerRole[]}; Returns: boolean };
 is_organization_member:{Args:{target_org:string;allowed_roles?:OrganizationMemberRole[]};Returns:boolean};
 has_organization_role:{Args:{allowed_roles?:OrganizationMemberRole[]};Returns:boolean};
+admin_update_organization_status:{Args:{actor_user:string;target_organization:string;new_status:OrganizationVerifiedStatus};Returns:Json};
+admin_upsert_organization_member:{Args:{actor_user:string;target_organization:string;target_user:string;new_role:OrganizationMemberRole;new_status?:OrganizationMemberStatus};Returns:Json};
+admin_remove_organization_member:{Args:{actor_user:string;target_membership:string};Returns:Json};
 create_credential_draft: { Args: {actor_user:string;target_organization?:string;recipient_user:string;new_type:CredentialType;new_category:CredentialCategory;new_title:string;new_description:string|null;new_issue_date:string;new_expiry_date:string|null;new_badge?:string|null}; Returns: Json };
 transition_credential: { Args: {actor_user:string;target_credential:string;requested_action:string;reason?:string|null}; Returns: Json };
 is_email_registered: { Args: {email_to_check: string}; Returns: boolean };
