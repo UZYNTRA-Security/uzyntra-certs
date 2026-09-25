@@ -86,7 +86,7 @@ function drawShell(page: PDFPage) {
   page.drawRectangle({ x: 0, y: 0, width: 842, height: 595, color: bg });
   page.drawRectangle({ x: 24, y: 24, width: 794, height: 547, color: darkPanel, borderColor: green, borderWidth: 1.6 });
   page.drawRectangle({ x: 38, y: 38, width: 766, height: 519, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.7 });
-  page.drawLine({ start: { x: 74, y: 454 }, end: { x: 768, y: 454 }, color: rgb(0.14, 0.3, 0.24), thickness: 0.55 });
+  page.drawLine({ start: { x: 74, y: 446 }, end: { x: 768, y: 446 }, color: rgb(0.14, 0.3, 0.24), thickness: 0.55 });
   page.drawLine({ start: { x: 92, y: 156 }, end: { x: 750, y: 156 }, color: rgb(0.14, 0.3, 0.24), thickness: 0.55 });
   page.drawRectangle({ x: 72, y: 530, width: 165, height: 2.2, color: green });
 }
@@ -156,13 +156,12 @@ function drawRecognitionSummary(page: PDFPage, fonts: Awaited<ReturnType<typeof 
 }
 
 function drawSeal(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, cx: number, cy: number, radius: number) {
-  page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.6 });
-  page.drawCircle({ x: cx, y: cy, size: radius - 8, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.8 });
-  page.drawCircle({ x: cx, y: cy, size: radius - 20, color: rgb(0.055, 0.12, 0.095), borderColor: green, borderWidth: 0.7 });
-  drawCenteredText(page, "UZYNTRA", cx, cy + 12, 6.2, fonts.heading, green);
-  drawCenteredText(page, "CERTS", cx, cy + 3, 6.5, fonts.heading, text);
-  drawCenteredText(page, "VERIFIED", cx, cy - 8, 5.8, fonts.heading, green);
-  drawCenteredText(page, "AUTHORITY", cx, cy - 17, 4.8, fonts.body, muted);
+  page.drawCircle({ x: cx, y: cy, size: radius, borderColor: green, borderWidth: 1.5 });
+  page.drawCircle({ x: cx, y: cy, size: radius - 9, borderColor: rgb(0.22, 0.52, 0.38), borderWidth: 0.75 });
+  page.drawCircle({ x: cx, y: cy, size: radius - 20, color: rgb(0.055, 0.12, 0.095), borderColor: green, borderWidth: 0.6 });
+  drawCenteredText(page, "UZYNTRA CERTS", cx, cy + 7, 5.6, fonts.heading, green);
+  drawCenteredText(page, "VERIFIED", cx, cy - 2, 6.4, fonts.heading, text);
+  drawCenteredText(page, "AUTHORITY", cx, cy - 12, 4.8, fonts.body, muted);
 }
 
 function drawSignature(page: PDFPage, fonts: Awaited<ReturnType<typeof loadFonts>>, credential: CertificatePdfInput) {
